@@ -25,9 +25,11 @@
         "drizzle-team.drizzle-vscode",
         "bradlc.vscode-tailwindcss",
         "ms-azuretools.vscode-docker",
-        "ckolkman.vscode-postgres",
+        "ms-ossdata.vscode-pgsql",
         "christian-kohler.path-intellisense",
-        "usernamehw.errorlens"
+        "usernamehw.errorlens",
+        "streetsidesoftware.code-spell-checker",
+        "dbaeumer.vscode-eslint"
       ]
     }
   },
