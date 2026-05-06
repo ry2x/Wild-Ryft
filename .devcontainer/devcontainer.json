@@ -1,0 +1,46 @@
+{
+    "name": "Wild Ryft",
+    "dockerComposeFile": "docker-compose.yml",
+    "service": "app",
+    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+
+    "features": {
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+        "ghcr.io/devcontainers/features/copilot-cli:1": {}
+    },
+
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "editor.formatOnSave": true,
+                "editor.defaultFormatter": "esbenp.prettier-vscode",
+                "js/ts.tsdk": "node_modules/typescript/lib",
+                "js/ts.enablePromptUseWorkspaceTsdk": true
+            },
+            "extensions": [
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
+                "astro-build.astro-vscode",
+                "drizzle-team.drizzle-vscode",
+                "bradlc.vscode-tailwindcss",
+                "ms-azuretools.vscode-docker",
+                "ckolkman.vscode-postgres",
+                "christian-kohler.path-intellisense",
+                "usernamehw.errorlens"
+            ]
+        }
+    },
+
+    "forwardPorts": [4321, 5432],
+    "portsAttributes": {
+        "4321": { "label": "Astro Web", "onAutoForward": "notify" },
+        "5432": { "label": "PostgreSQL", "onAutoForward": "silent" }
+    },
+
+    "postCreateCommand": "pnpm install",
+
+    "remoteEnv": {
+        "DATABASE_URL": "postgresql://postgres:postgres@db:5432/wildryft"
+    }
+}
