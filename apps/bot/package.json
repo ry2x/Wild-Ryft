@@ -1,0 +1,20 @@
+{
+  "name": "@wild-ryft/bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@sapphire/framework": "^5.5.0",
+    "@sapphire/plugin-i18next": "^8.0.0",
+    "@wild-ryft/db": "workspace:*",
+    "@wild-ryft/shared": "workspace:*",
+    "discord.js": "^14.26.4",
+    "dotenv": "^17.4.2"
+  }
+}

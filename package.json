@@ -1,0 +1,36 @@
+{
+  "name": "wild-ryft",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bot": "pnpm --filter @wild-ryft/bot dev",
+    "web": "pnpm --filter @wild-ryft/web dev",
+    "db:generate": "pnpm --filter @wild-ryft/db generate",
+    "db:migrate": "pnpm --filter @wild-ryft/db migrate",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint . --ext .ts,.tsx --ignore-pattern .gitignore",
+    "format": "prettier --write ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.33.0",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "latest",
+    "@typescript-eslint/parser": "^8.59.2",
+    "drizzle-kit": "^0.31.10",
+    "eslint": "^10.3.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-astro": "1.7.0",
+    "prettier": "^3.8.3",
+    "prettier-plugin-astro": "0.14.1",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "turbo": "^2.9.9",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.2"
+  }
+}
