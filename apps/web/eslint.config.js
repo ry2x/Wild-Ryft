@@ -1,7 +1,7 @@
-import eslintPluginAstro from "eslint-plugin-astro";
-import tseslint from "typescript-eslint";
+import eslintPluginAstro from 'eslint-plugin-astro';
+import tseslint from 'typescript-eslint';
 
-import config from "../../eslint.config.js";
+import config from '../../eslint.config.js';
 
 const astroConfig = [
   ...config,
@@ -11,18 +11,18 @@ const astroConfig = [
 
   // Astro files configuration
   {
-    files: ["**/*.astro"],
+    files: ['**/*.astro'],
     languageOptions: {
       parser: eslintPluginAstro.parser,
       parserOptions: {
         parser: tseslint.parser,
-        extraFileExtensions: [".astro"],
-      },
+        extraFileExtensions: ['.astro']
+      }
     },
     rules: {
       // Add custom Astro rules here if needed
-    },
-  },
+    }
+  }
 ];
 
 export default astroConfig;
