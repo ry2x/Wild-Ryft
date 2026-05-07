@@ -14,12 +14,12 @@ export const RANKS = [
 export type Rank = (typeof RANKS)[number];
 
 export const ROLES = [
-  'Fighter',
-  'Mage',
-  'Assassin',
-  'Marksman',
-  'Support',
-  'Tank'
+  'fighter',
+  'mage',
+  'assassin',
+  'marksman',
+  'support',
+  'tank'
 ] as const;
 export type Role = (typeof ROLES)[number];
 
