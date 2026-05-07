@@ -14,21 +14,21 @@ import {
   primaryKey
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { POSITIONS, RANKS } from '@wild-ryft/shared';
+import { LANES, RANKS, ROLES } from '@wild-ryft/shared';
 
 export const championMaster = pgTable(
   'champion_master',
   {
-    id: bigint('id', { mode: 'number' }).primaryKey(),
+    champion_id: text('champion_id').primaryKey(),
     championKey: text('champion_key').notNull().unique(),
     heroId: text('hero_id').unique(),
-    roles: text('roles')
+    roles: text('roles', { enum: ROLES })
       .array()
       .notNull()
       .default(sql`'{}'::text[]`),
     championType: text('champion_type').notNull(),
     isWr: boolean('is_wr').notNull().default(false),
-    lanes: text('lanes')
+    lanes: text('lanes', { enum: LANES })
       .array()
       .notNull()
       .default(sql`'{}'::text[]`),
@@ -48,6 +48,14 @@ export const championMaster = pgTable(
       'champion_master_difficult_range',
       sql`${t.difficult} BETWEEN 1 AND 3`
     ),
+    check(
+      'champion_master_roles_allowed',
+      sql`${t.roles} <@ ARRAY['Fighter', 'Mage', 'Assassin', 'Marksman', 'Support', 'Tank']::text[]`
+    ),
+    check(
+      'champion_master_lanes_allowed',
+      sql`${t.lanes} <@ ARRAY['top', 'jungle', 'mid', 'bot', 'support']::text[]`
+    ),
     check('champion_master_damage_range', sql`${t.damage} BETWEEN 1 AND 3`),
     check('champion_master_survive_range', sql`${t.survive} BETWEEN 1 AND 3`),
     check('champion_master_utility_range', sql`${t.utility} BETWEEN 1 AND 3`)
@@ -57,9 +65,9 @@ export const championMaster = pgTable(
 export const championTexts = pgTable(
   'champion_texts',
   {
-    championId: bigint('champion_id', { mode: 'number' })
+    championId: text('champion_id')
       .notNull()
-      .references(() => championMaster.id, { onDelete: 'cascade' }),
+      .references(() => championMaster.champion_id, { onDelete: 'cascade' }),
     locale: text('locale').notNull(),
     name: text('name').notNull(),
     title: text('title'),
@@ -78,11 +86,11 @@ export const championStats = pgTable(
     id: bigint('id', { mode: 'number' })
       .primaryKey()
       .generatedAlwaysAsIdentity(),
-    championId: bigint('champion_id', { mode: 'number' })
+    championId: text('champion_id')
       .notNull()
-      .references(() => championMaster.id, { onDelete: 'cascade' }),
+      .references(() => championMaster.champion_id, { onDelete: 'cascade' }),
     rank: text('rank', { enum: RANKS }).notNull(),
-    position: text('position', { enum: POSITIONS }).notNull(),
+    lane: text('lane', { enum: LANES }).notNull(),
     pickRate: numeric('pick_rate', {
       precision: 9,
       scale: 6,
@@ -114,13 +122,13 @@ export const championStats = pgTable(
     unique('uq_champion_stats_snapshot').on(
       t.championId,
       t.rank,
-      t.position,
+      t.lane,
       t.statsAt
     ),
     index('idx_champion_stats_at').on(t.statsAt),
     index('idx_champion_stats_champion_id').on(t.championId),
     index('idx_champion_stats_rank').on(t.rank),
-    index('idx_champion_stats_position').on(t.position)
+    index('idx_champion_stats_lane').on(t.lane)
   ]
 );
 
@@ -130,9 +138,9 @@ export const tierSnapshots = pgTable(
     id: bigint('id', { mode: 'number' })
       .primaryKey()
       .generatedAlwaysAsIdentity(),
-    championId: bigint('champion_id', { mode: 'number' })
+    championId: text('champion_id')
       .notNull()
-      .references(() => championMaster.id, { onDelete: 'cascade' }),
+      .references(() => championMaster.champion_id, { onDelete: 'cascade' }),
     score: doublePrecision('score').notNull(),
     tier: text('tier').notNull(),
     sourceDate: date('source_date').notNull(),

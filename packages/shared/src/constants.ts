@@ -1,5 +1,5 @@
-export const POSITIONS = ['top', 'jungle', 'mid', 'bot', 'support'] as const;
-export type Position = (typeof POSITIONS)[number];
+export const LANES = ['top', 'jungle', 'mid', 'bot', 'support'] as const;
+export type Lane = (typeof LANES)[number];
 
 export const TIERS = ['S+', 'S', 'A', 'B', 'C', 'D'] as const;
 export type Tier = (typeof TIERS)[number];
@@ -23,7 +23,7 @@ export const ROLES = [
 ] as const;
 export type Role = (typeof ROLES)[number];
 
-export const POSITION_LABELS: Record<Position, string> = {
+export const LANE_LABELS: Record<Lane, string> = {
   top: 'Top Lane',
   jungle: 'Jungle',
   mid: 'Mid Lane',
