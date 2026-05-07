@@ -15,6 +15,12 @@ import {
 import { sql } from 'drizzle-orm';
 import { LANES, RANKS, ROLES } from '@wild-ryft/shared';
 
+const toPgTextArray = (values: readonly string[]) =>
+  sql`ARRAY[${sql.join(
+    values.map((value) => sql`${value}`),
+    sql`, `
+  )}]::text[]`;
+
 export const championMaster = pgTable(
   'champion_master',
   {
@@ -49,11 +55,11 @@ export const championMaster = pgTable(
     ),
     check(
       'champion_master_roles_allowed',
-      sql`${t.roles} <@ ARRAY['Fighter', 'Mage', 'Assassin', 'Marksman', 'Support', 'Tank']::text[]`
+      sql`${t.roles} <@ ${toPgTextArray(ROLES)}`
     ),
     check(
       'champion_master_lanes_allowed',
-      sql`${t.lanes} <@ ARRAY['top', 'jungle', 'mid', 'bot', 'support']::text[]`
+      sql`${t.lanes} <@ ${toPgTextArray(LANES)}`
     ),
     check('champion_master_damage_range', sql`${t.damage} BETWEEN 1 AND 3`),
     check('champion_master_survive_range', sql`${t.survive} BETWEEN 1 AND 3`),
@@ -113,6 +119,14 @@ export const championStats = pgTable(
     statsAt: timestamp('stats_at', { precision: 2 }).notNull()
   },
   (t) => [
+    check(
+      'champion_stats_rank_allowed',
+      sql`${t.rank} = ANY(${toPgTextArray(RANKS)})`
+    ),
+    check(
+      'champion_stats_lane_allowed',
+      sql`${t.lane} = ANY(${toPgTextArray(LANES)})`
+    ),
     check('champion_stats_strength_range', sql`${t.strength} BETWEEN 1 AND 40`),
     check(
       'champion_stats_strength_level_range',
@@ -164,6 +178,14 @@ export const tierSnapshots = pgTable(
     snapshotAt: timestamp('snapshot_at', { precision: 2 }).notNull()
   },
   (t) => [
+    check(
+      'tier_snapshots_rank_allowed',
+      sql`${t.rank} = ANY(${toPgTextArray(RANKS)})`
+    ),
+    check(
+      'tier_snapshots_lane_allowed',
+      sql`${t.lane} = ANY(${toPgTextArray(LANES)})`
+    ),
     unique('uq_tier_snapshots_snapshot').on(
       t.championId,
       t.rank,
