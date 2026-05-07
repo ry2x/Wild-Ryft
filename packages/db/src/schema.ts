@@ -6,7 +6,6 @@ import {
   integer,
   numeric,
   doublePrecision,
-  date,
   timestamp,
   unique,
   index,
@@ -141,14 +140,39 @@ export const tierSnapshots = pgTable(
     championId: text('champion_id')
       .notNull()
       .references(() => championMaster.champion_id, { onDelete: 'cascade' }),
+    rank: text('rank', { enum: RANKS }).notNull(),
+    lane: text('lane', { enum: LANES }).notNull(),
     score: doublePrecision('score').notNull(),
+    momentumScore: doublePrecision('momentum_score').notNull(),
+    tierStatus: doublePrecision('tier_status').notNull(),
     tier: text('tier').notNull(),
-    sourceDate: date('source_date').notNull(),
-    createdAt: timestamp('created_at', { precision: 2 }).notNull().defaultNow()
+    winrateDiff: numeric('winrate_diff', {
+      precision: 9,
+      scale: 6,
+      mode: 'string'
+    }).notNull(),
+    banrateDiff: numeric('banrate_diff', {
+      precision: 9,
+      scale: 6,
+      mode: 'string'
+    }).notNull(),
+    pickrateDiff: numeric('pickrate_diff', {
+      precision: 9,
+      scale: 6,
+      mode: 'string'
+    }).notNull(),
+    snapshotAt: timestamp('snapshot_at', { precision: 2 }).notNull()
   },
   (t) => [
-    unique('uq_tier_snapshots_champion_date').on(t.championId, t.sourceDate),
-    index('idx_tier_snapshots_source_date').on(t.sourceDate)
+    unique('uq_tier_snapshots_snapshot').on(
+      t.championId,
+      t.rank,
+      t.lane,
+      t.snapshotAt
+    ),
+    index('idx_tier_snapshots_snapshot_at').on(t.snapshotAt),
+    index('idx_tier_snapshots_rank').on(t.rank),
+    index('idx_tier_snapshots_lane').on(t.lane)
   ]
 );
 
