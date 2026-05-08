@@ -8,6 +8,7 @@
     "web": "pnpm --filter @wild-ryft/web dev",
     "db:generate": "pnpm --filter @wild-ryft/db generate",
     "db:migrate": "pnpm --filter @wild-ryft/db migrate",
+    "db:seed": "pnpm --filter @wild-ryft/db seed",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "lint": "eslint . --ext .ts,.tsx --ignore-pattern .gitignore",
