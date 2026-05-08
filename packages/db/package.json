@@ -10,10 +10,14 @@
   "scripts": {
     "generate": "drizzle-kit generate",
     "migrate": "drizzle-kit migrate",
+    "seed": "tsx src/seed/index.ts",
+    "seed:champion": "tsx src/seed/champion.ts",
+    "seed:stats": "tsx src/seed/stats.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@wild-ryft/shared": "workspace:*",
+    "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "postgres": "^3.4.9"
   }
