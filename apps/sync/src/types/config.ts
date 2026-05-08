@@ -1,6 +1,8 @@
-export type SyncConfig = {
-  CN_CHAMPION_API: string;
-  CN_STATS_URL: string;
-  DD_VERSION_API: string;
-  DD_CHAMPION_API: string;
-};
+export const SYNC_CONFIG_KEYS = [
+  'CN_CHAMPION_API',
+  'CN_STATS_URL',
+  'DD_VERSION_API',
+  'DD_CHAMPION_API'
+] as const;
+
+export type SyncConfig = Record<(typeof SYNC_CONFIG_KEYS)[number], string>;
