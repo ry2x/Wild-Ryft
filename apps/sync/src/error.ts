@@ -2,6 +2,7 @@ export class SyncError extends Error {
   constructor(
     message: string,
     public readonly code:
+      | 'CONFIG_ERROR'
       | 'FETCH_ERROR'
       | 'NORMALIZATION_ERROR'
       | 'DB_ERROR'
