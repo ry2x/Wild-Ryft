@@ -17,7 +17,7 @@ import { LANES, RANKS, ROLES } from '@wild-ryft/shared';
 
 const toPgTextArray = (values: readonly string[]) =>
   sql`ARRAY[${sql.join(
-    values.map((value) => sql`${value}`),
+    values.map((v) => sql`${v}`),
     sql`, `
   )}]::text[]`;
 
@@ -51,7 +51,7 @@ export const championMaster = pgTable(
     ),
     check(
       'champion_master_difficult_range',
-      sql`${t.difficult} BETWEEN 1 AND 3`
+      sql`${t.difficult} BETWEEN 0 AND 3`
     ),
     check(
       'champion_master_roles_allowed',
@@ -61,9 +61,9 @@ export const championMaster = pgTable(
       'champion_master_lanes_allowed',
       sql`${t.lanes} <@ ${toPgTextArray(LANES)}`
     ),
-    check('champion_master_damage_range', sql`${t.damage} BETWEEN 1 AND 3`),
-    check('champion_master_survive_range', sql`${t.survive} BETWEEN 1 AND 3`),
-    check('champion_master_utility_range', sql`${t.utility} BETWEEN 1 AND 3`)
+    check('champion_master_damage_range', sql`${t.damage} BETWEEN 0 AND 3`),
+    check('champion_master_survive_range', sql`${t.survive} BETWEEN 0 AND 3`),
+    check('champion_master_utility_range', sql`${t.utility} BETWEEN 0 AND 3`)
   ]
 );
 
@@ -127,7 +127,7 @@ export const championStats = pgTable(
       'champion_stats_lane_allowed',
       sql`${t.lane} = ANY(${toPgTextArray(LANES)})`
     ),
-    check('champion_stats_strength_range', sql`${t.strength} BETWEEN 1 AND 40`),
+    check('champion_stats_strength_range', sql`${t.strength} > 0`),
     check(
       'champion_stats_strength_level_range',
       sql`${t.strengthLevel} BETWEEN 0 AND 5`
