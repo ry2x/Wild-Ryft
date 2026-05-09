@@ -16,7 +16,10 @@ import { sql } from 'drizzle-orm';
 import { LANES, RANKS, ROLES } from '@wild-ryft/shared';
 
 const toPgTextArray = (values: readonly string[]) =>
-  sql.raw(`ARRAY['${values.join("', '")}']::text[]`);
+  sql`ARRAY[${sql.join(
+    values.map((v) => sql`${v}`),
+    sql`, `
+  )}]::text[]`;
 
 export const championMaster = pgTable(
   'champion_master',
