@@ -1,8 +1,13 @@
 import 'dotenv/config';
 import { sql } from 'drizzle-orm';
-import { db } from '../index.js';
+import { db, closeDb } from '../index.js';
 import { championMaster, championTexts } from '../schema.js';
-import { SUPPORTED_LOCALES, type SupportedLocale } from '@wild-ryft/shared';
+import {
+  SUPPORTED_LOCALES,
+  type SupportedLocale,
+  LANES,
+  ROLES
+} from '@wild-ryft/shared';
 import type { Role, Lane } from '@wild-ryft/shared';
 
 const REPO_BASE =
@@ -27,7 +32,11 @@ interface ChampionEntry {
 }
 
 function normalizeLane(lane: string): Lane {
-  return (lane === 'ad' ? 'bot' : lane) as Lane;
+  const normalized = lane === 'ad' ? 'bot' : lane;
+  if (!(LANES as readonly string[]).includes(normalized)) {
+    throw new Error(`Unknown lane: "${lane}"`);
+  }
+  return normalized as Lane;
 }
 
 async function fetchLocaleData(
@@ -48,7 +57,13 @@ export async function seedChampions(): Promise<void> {
     champion_id: c.id,
     championKey: String(c.key),
     heroId: c.hero_id === 0 ? null : String(c.hero_id),
-    roles: c.roles as Role[],
+    roles: c.roles.filter((r): r is Role => {
+      if (!(ROLES as readonly string[]).includes(r)) {
+        console.warn(`  Unknown role "${r}" for champion ${c.id}, skipping`);
+        return false;
+      }
+      return true;
+    }),
     championType: c.type,
     isWr: c.is_wr,
     lanes: c.lanes.map(normalizeLane),
@@ -85,7 +100,8 @@ export async function seedChampions(): Promise<void> {
   const allLocaleData = await Promise.all(
     SUPPORTED_LOCALES.map(async (locale) => ({
       locale,
-      data: await fetchLocaleData(locale)
+      // Reuse already-fetched masterData for en_US to avoid a duplicate network request
+      data: locale === 'en_US' ? masterData : await fetchLocaleData(locale)
     }))
   );
 
@@ -125,7 +141,7 @@ export async function seedChampions(): Promise<void> {
 // Run standalone
 if (import.meta.url === `file://${process.argv[1]}`) {
   seedChampions()
-    .then(() => process.exit(0))
+    .then(() => closeDb())
     .catch((err) => {
       console.error(err);
       process.exit(1);

@@ -1,10 +1,10 @@
 import 'dotenv/config';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { sql } from 'drizzle-orm';
-import { db } from '../index.js';
+import { db, closeDb } from '../index.js';
 import { championStats } from '../schema.js';
 import type { Rank, Lane } from '@wild-ryft/shared';
 
@@ -49,6 +49,9 @@ function transformStats(
   raw: RawStatsFile
 ): (typeof championStats.$inferInsert)[] {
   const statsAt = new Date(raw.date);
+  if (isNaN(statsAt.valueOf())) {
+    throw new Error(`Invalid date in stats file: "${raw.date}"`);
+  }
   const rows: (typeof championStats.$inferInsert)[] = [];
 
   for (const [rawRank, laneData] of Object.entries(raw.data)) {
@@ -87,12 +90,21 @@ export async function seedStats(): Promise<void> {
   const tmpDir = mkdtempSync(join(tmpdir(), 'wr-stats-seed-'));
 
   try {
-    execSync(`git clone --branch gh-pages --quiet ${STATS_REPO} ${tmpDir}`);
+    execFileSync('git', [
+      'clone',
+      '--branch',
+      'gh-pages',
+      '--quiet',
+      STATS_REPO,
+      tmpDir
+    ]);
     console.log('  Repository cloned.');
 
-    const shaList = execSync(`git -C ${tmpDir} log --format=%H --reverse`, {
-      encoding: 'utf-8'
-    })
+    const shaList = execFileSync(
+      'git',
+      ['-C', tmpDir, 'log', '--format=%H', '--reverse'],
+      { encoding: 'utf-8' }
+    )
       .trim()
       .split('\n')
       .filter(Boolean);
@@ -108,10 +120,11 @@ export async function seedStats(): Promise<void> {
 
       let rawJson: string;
       try {
-        rawJson = execSync(`git -C ${tmpDir} show ${sha}:heroStats.json`, {
-          encoding: 'utf-8',
-          stdio: ['pipe', 'pipe', 'pipe']
-        });
+        rawJson = execFileSync(
+          'git',
+          ['-C', tmpDir, 'show', `${sha}:heroStats.json`],
+          { encoding: 'utf-8' }
+        );
       } catch {
         skipped++;
         continue;
@@ -128,40 +141,42 @@ export async function seedStats(): Promise<void> {
       const rows = transformStats(rawData);
       if (rows.length === 0) continue;
 
-      for (let j = 0; j < rows.length; j += CHUNK) {
-        await db
-          .insert(championStats)
-          .values(rows.slice(j, j + CHUNK))
-          .onConflictDoUpdate({
-            target: [
-              championStats.championId,
-              championStats.rank,
-              championStats.lane,
-              championStats.statsAt
-            ],
-            set: {
-              pickRate: sql`excluded.pick_rate`,
-              pickRateBzc: sql`excluded.pick_rate_bzc`,
-              banRate: sql`excluded.ban_rate`,
-              banRateBzc: sql`excluded.ban_rate_bzc`,
-              winRate: sql`excluded.win_rate`,
-              winRateBzc: sql`excluded.win_rate_bzc`,
-              strength: sql`excluded.strength`,
-              strengthLevel: sql`excluded.strength_level`
-            }
-          });
-      }
+      await db.transaction(async (tx) => {
+        for (let j = 0; j < rows.length; j += CHUNK) {
+          await tx
+            .insert(championStats)
+            .values(rows.slice(j, j + CHUNK))
+            .onConflictDoUpdate({
+              target: [
+                championStats.championId,
+                championStats.rank,
+                championStats.lane,
+                championStats.statsAt
+              ],
+              set: {
+                pickRate: sql`excluded.pick_rate`,
+                pickRateBzc: sql`excluded.pick_rate_bzc`,
+                banRate: sql`excluded.ban_rate`,
+                banRateBzc: sql`excluded.ban_rate_bzc`,
+                winRate: sql`excluded.win_rate`,
+                winRateBzc: sql`excluded.win_rate_bzc`,
+                strength: sql`excluded.strength`,
+                strengthLevel: sql`excluded.strength_level`
+              }
+            });
+        }
+      });
 
       totalRows += rows.length;
       if ((i + 1) % 10 === 0 || i + 1 === shaList.length) {
         console.log(
-          `  [${i + 1}/${shaList.length}] ${new Date(rawData.date).toISOString().slice(0, 10)} — ${rows.length} rows`
+          `  [${i + 1}/${shaList.length}] ${rawData.date} — ${rows.length} rows`
         );
       }
     }
 
     console.log(
-      `Stats seeded: ${totalRows} rows inserted (${skipped} commits skipped).`
+      `Stats seeded: ${totalRows} rows upserted (${skipped} commits skipped).`
     );
   } finally {
     rmSync(tmpDir, { recursive: true, force: true });
@@ -171,7 +186,7 @@ export async function seedStats(): Promise<void> {
 // Run standalone
 if (import.meta.url === `file://${process.argv[1]}`) {
   seedStats()
-    .then(() => process.exit(0))
+    .then(() => closeDb())
     .catch((err) => {
       console.error(err);
       process.exit(1);
