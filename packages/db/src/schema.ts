@@ -145,8 +145,8 @@ export const championStats = pgTable(
   ]
 );
 
-export const tierSnapshots = pgTable(
-  'tier_snapshots',
+export const scoreSnapshots = pgTable(
+  'score_snapshots',
   {
     id: bigint('id', { mode: 'number' })
       .primaryKey()
@@ -158,8 +158,6 @@ export const tierSnapshots = pgTable(
     lane: text('lane', { enum: LANES }).notNull(),
     score: doublePrecision('score').notNull(),
     momentumScore: doublePrecision('momentum_score').notNull(),
-    tierStatus: doublePrecision('tier_status').notNull(),
-    tier: text('tier').notNull(),
     winrateDiff: numeric('winrate_diff', {
       precision: 9,
       scale: 6,
@@ -179,26 +177,26 @@ export const tierSnapshots = pgTable(
   },
   (t) => [
     check(
-      'tier_snapshots_rank_allowed',
+      'score_snapshots_rank_allowed',
       sql`${t.rank} = ANY(${toPgTextArray(RANKS)})`
     ),
     check(
-      'tier_snapshots_lane_allowed',
+      'score_snapshots_lane_allowed',
       sql`${t.lane} = ANY(${toPgTextArray(LANES)})`
     ),
-    unique('uq_tier_snapshots_snapshot').on(
+    unique('uq_score_snapshots_snapshot').on(
       t.championId,
       t.rank,
       t.lane,
       t.snapshotAt
     ),
-    index('idx_tier_snapshots_snapshot_at').on(t.snapshotAt),
-    index('idx_tier_snapshots_rank').on(t.rank),
-    index('idx_tier_snapshots_lane').on(t.lane)
+    index('idx_score_snapshots_snapshot_at').on(t.snapshotAt),
+    index('idx_score_snapshots_rank').on(t.rank),
+    index('idx_score_snapshots_lane').on(t.lane)
   ]
 );
 
 export type ChampionMaster = typeof championMaster.$inferSelect;
 export type ChampionText = typeof championTexts.$inferSelect;
 export type ChampionStats = typeof championStats.$inferSelect;
-export type TierSnapshot = typeof tierSnapshots.$inferSelect;
+export type ScoreSnapshot = typeof scoreSnapshots.$inferSelect;
