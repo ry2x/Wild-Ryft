@@ -200,3 +200,8 @@ export type ChampionMaster = typeof championMaster.$inferSelect;
 export type ChampionText = typeof championTexts.$inferSelect;
 export type ChampionStats = typeof championStats.$inferSelect;
 export type ScoreSnapshot = typeof scoreSnapshots.$inferSelect;
+
+export type NewChampionMaster = typeof championMaster.$inferInsert;
+export type NewChampionText = typeof championTexts.$inferInsert;
+export type NewChampionStats = typeof championStats.$inferInsert;
+export type NewScoreSnapshot = typeof scoreSnapshots.$inferInsert;
