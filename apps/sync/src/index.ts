@@ -1,37 +1,37 @@
 import type { Logger } from '@wild-ryft/logger';
 import { SupportedLocale } from '@wild-ryft/shared';
+import { closeDb } from '@wild-ryft/db';
 
-import { syncChampionData } from './champion.js';
+import { syncChampionData } from './champion/index.js';
 import { loadConfig } from './config.js';
 import { SyncError } from './error.js';
 
 export interface RunSyncOptions {
   readonly logger: Logger;
   readonly langs: SupportedLocale[];
-  readonly dbConnectionString?: string;
 }
 
 export async function runSync(options: RunSyncOptions): Promise<void> {
-  if (!options.dbConnectionString) {
-    throw new SyncError(
-      'Database connection string is required',
-      'CONFIG_ERROR',
-      false
-    );
-  }
-
-  const { logger, langs, dbConnectionString } = options;
+  const { logger, langs } = options;
   const config = loadConfig();
 
   logger.debug('Loaded sync config', { keys: Object.keys(config) });
   logger.info('Sync process initialized', { endpoints: Object.keys(config) });
 
-  await runTask('champion', logger, () =>
-    syncChampionData({ config, dbConnectionString, langs })
-  );
+  try {
+    await runTask('champion', logger, () =>
+      syncChampionData({ config, langs })
+    );
+  } finally {
+    await closeDb();
+  }
 }
 
-async function runTask(name: string, logger: Logger, task: () => Promise<void>): Promise<void> {
+async function runTask(
+  name: string,
+  logger: Logger,
+  task: () => Promise<void>
+): Promise<void> {
   try {
     await task();
     logger.info(`${name} sync completed`);

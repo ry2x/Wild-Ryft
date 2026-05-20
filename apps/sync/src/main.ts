@@ -4,6 +4,11 @@ import { SUPPORTED_LOCALES } from '@wild-ryft/shared';
 
 import { runSync } from './index.js';
 
+if (!process.env.DATABASE_URL) {
+  console.error('DATABASE_URL is not set');
+  process.exit(1);
+}
+
 const logger = createLogger({
   name: 'sync-service',
   level: process.env.LOG_LEVEL,
@@ -14,9 +19,7 @@ const logger = createLogger({
 
 const langs = [...SUPPORTED_LOCALES];
 
-runSync({ logger, langs, dbConnectionString: process.env.DB_CONNECTION_STRING }).catch(
-  (error) => {
-    logger.error('Sync process failed', { error });
-    process.exit(1);
-  }
-);
+runSync({ logger, langs }).catch((error) => {
+  logger.error('Sync process failed', { error });
+  process.exit(1);
+});
