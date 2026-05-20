@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+
 import { SyncError } from './error.js';
 import { SYNC_CONFIG_KEYS, type SyncConfig } from './types/config.js';
 
