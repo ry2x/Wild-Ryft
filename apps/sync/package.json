@@ -8,6 +8,7 @@
     "dev": "tsx watch src/main.ts",
     "build": "tsc",
     "start": "node dist/main.js",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -15,6 +16,7 @@
     "@wild-ryft/shared": "workspace:*",
     "@wild-ryft/db": "workspace:*",
     "axios": "^1.16.0",
-    "dotenv": "^17.4.2"
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2"
   }
 }

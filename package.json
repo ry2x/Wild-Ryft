@@ -11,6 +11,8 @@
     "db:seed": "pnpm --filter @wild-ryft/db seed",
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "eslint . --ext .ts,.tsx --ignore-pattern .gitignore",
     "format": "prettier --write ."
   },
@@ -32,6 +34,7 @@
     "tsx": "^4.21.0",
     "turbo": "^2.9.9",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.2"
+    "typescript-eslint": "^8.59.2",
+    "vitest": "^4.1.7"
   }
 }
