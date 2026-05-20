@@ -8,38 +8,38 @@ export type DDPatchList = string[];
 /**
  * The type of data returned by the DataDragon for champions.
  */
-export interface ChampionData {
+export interface DDChampionData {
   type: string;
   format: string;
   version: string;
-  data: Record<string, Champion>;
+  data: Record<string, DDChampion>;
 }
 
 /**
  * The type of data returned by the DataDragon for a champion.
  */
-export interface Champion {
+export interface DDChampion {
   version: string;
   id: string;
   key: string;
   name: string;
   title: string;
   blurb: string;
-  info: ChampionInfo;
-  image: ChampionImage;
+  info: DDChampionInfo;
+  image: DDChampionImage;
   tags: Role[];
   partype: string;
-  stats: ChampionStats;
+  stats: DDChampionStats;
 }
 
-export interface ChampionInfo {
+export interface DDChampionInfo {
   attack: number;
   defense: number;
   magic: number;
   difficulty: number;
 }
 
-export interface ChampionImage {
+export interface DDChampionImage {
   full: string;
   sprite: string;
   group: string;
@@ -49,7 +49,7 @@ export interface ChampionImage {
   h: number;
 }
 
-export interface ChampionStats {
+export interface DDChampionStats {
   hp: number;
   hpperlevel: number;
   mp: number;

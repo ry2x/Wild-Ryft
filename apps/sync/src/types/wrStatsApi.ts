@@ -1,8 +1,8 @@
 /**
- * Hero statistics (CN API format)
+ * Hero statistics (WR API format: CN server api)
  */
 
-export type CNHeroStats = {
+export type WRHeroStats = {
   /** Unique identifier (not champion ID, used internally by the API) */
   id: number;
   /** Position/lane of the hero */
@@ -44,35 +44,35 @@ export type CNHeroStats = {
 };
 
 /**
- * Rank ranges for statistics (CN API format)
+ * Rank ranges for statistics (WR API format)
  * 0:ALL 1:Dia+ 2:Mas+ 3:Ch+ 4:super server
  */
-export type CNRankRange = '0' | '1' | '2' | '3' | '4';
+export type WRRankRange = '0' | '1' | '2' | '3' | '4';
 
 /**
- * Lane in the game (CN API format)
+ * Lane in the game (WR API format)
  * 0:all 1:mid 2:top 3:adc 4:sup
  */
-export type CNLane = '1' | '2' | '3' | '4' | '5';
+export type WRLane = '1' | '2' | '3' | '4' | '5';
 
 /**
- * Statistics for each lanes (CN API format)
+ * Statistics for each lanes (WR API format)
  */
-export type CNLaneStats = Record<CNLane, CNHeroStats[]>;
+export type WRLaneStats = Record<WRLane, WRHeroStats[]>;
 
 /**
- * Statistics for each rank range (CN API format)
+ * Statistics for each rank range (WR API format)
  */
-export type CNRankStats = {
-  [C in CNRankRange]: CNLaneStats;
+export type WRRankStats = {
+  [C in WRRankRange]: WRLaneStats;
 };
 
 /**
- * Response structure for CN champion statistics API (CN API format)
+ * Response structure for WR champion statistics API (WR API format)
  */
-export type CNChampionStats = {
+export type WRChampionStats = {
   /** Result code */
   result: number;
   /** Statistics data */
-  data: CNRankStats;
+  data: WRRankStats;
 };

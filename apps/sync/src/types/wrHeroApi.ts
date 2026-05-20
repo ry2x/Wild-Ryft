@@ -1,8 +1,7 @@
 /**
- * Hero Information (CN API format)
+ * Hero Information (WR API format: CN server api)
  */
-
-export interface CNHero {
+export interface WRHero {
   heroId: string;
   name: string;
   title: string;
@@ -28,13 +27,21 @@ export interface CNHero {
  * A collection of heroes indexed by their heroId.
  * Acts as a dictionary/map of Hero objects.
  */
-export interface CNHeroList {
-  [heroId: string]: CNHero;
+export interface WRHeroList {
+  [heroId: string]: WRHero;
 }
 
 /**
- * The type of data returned by the cn not the officially API for champions.
+ * The type of data returned by the CN server, not the official API for champions.
  */
-export interface CNHeroData {
-  heroList: CNHeroList;
+export interface WRHeroData {
+  heroList: WRHeroList;
+}
+
+/**
+ * Added id param which is same id from riot API.
+ * This id is extracted from the poster url.
+ */
+export interface WRHeroID extends WRHero {
+  id: string;
 }
