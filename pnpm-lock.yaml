@@ -77,6 +77,9 @@ importers:
 
   apps/sync:
     dependencies:
+      '@wild-ryft/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@wild-ryft/logger':
         specifier: workspace:*
         version: link:../../packages/logger
