@@ -1,7 +1,7 @@
 import { Lane, Role, SupportedLocale } from '@wild-ryft/shared';
 import { NewChampionMaster, NewChampionText } from '@wild-ryft/db/schema';
 
-import { LANE_MAPPING } from '../constants.js';
+import { LANE_MAPPING, NO_WR_LANE } from '../constants.js';
 import { DDChampionData } from '../types/ddApi.js';
 import { WRHeroData, WRHeroID } from '../types/wrHeroApi.js';
 
@@ -67,7 +67,9 @@ function createMasterData(options: CreateMasterDataOptions): NewChampionMaster {
     championType: riotChampion.partype,
     isWr: !!wrChampion,
     roles: riotChampion.tags.map((tag) => tag.toLowerCase() as Role),
-    lanes: wrChampion ? convertLanes(wrChampion.lane) : [],
+    lanes: wrChampion
+      ? convertLanes(wrChampion.lane)
+      : (NO_WR_LANE[riotChampion.id] ?? []),
     isFree: wrChampion ? wrChampion.isWeekFree === '1' : false,
     difficult: wrChampion ? parseInt(wrChampion.difficultyL) || 0 : 0,
     damage: wrChampion ? parseInt(wrChampion.damage) || 0 : 0,
