@@ -14,6 +14,10 @@ interface ChampionUpsertDataOptions {
   championTextData: NewChampionText[];
 }
 
+/**
+ * Bulk upsert champion data into the database, handling conflicts by updating existing records.
+ * @param options - The champion data to be upserted, including master and text data.
+ */
 export async function upsertChampionData(
   options: ChampionUpsertDataOptions
 ): Promise<void> {

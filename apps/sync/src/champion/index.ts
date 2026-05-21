@@ -22,15 +22,18 @@ export async function syncChampionData(
   options: SyncChampionDataOptions
 ): Promise<void> {
   try {
+    // Prepare initial data from APIs
     const ver = await fetchDDVersion(options.config.DD_VERSION_API);
     const wrHeroData = await fetchWRChampionData(
       options.config.WR_CHAMPION_API
     );
     const wrHeroDataWithId = addIdToWrData(wrHeroData);
 
+    // Make array for bulk upsert
     const championMasterData = [];
     const championTextData = [];
 
+    // Create merged champion data for each language
     for (const lang of options.langs) {
       const championData = await fetchChampionData({
         ddVersion: ver,
@@ -46,6 +49,7 @@ export async function syncChampionData(
       championTextData.push(...mergedData.textData);
     }
 
+    // Upsert merged champion data into DB
     await upsertChampionData({
       championMasterData,
       championTextData
