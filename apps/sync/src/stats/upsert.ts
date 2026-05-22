@@ -1,15 +1,18 @@
-import { championStats, db, scoreSnapshots } from '@wild-ryft/db';
+import { championStats, db, NewChampionStats } from '@wild-ryft/db';
 
-import { TransformedChampionData } from './transform.js';
+import { SyncError } from '../error.js';
 
 export async function upsertStatsData(
-  options: TransformedChampionData
+  statsData: NewChampionStats[]
 ): Promise<void> {
-  const { statsData, snapshotData } = options;
-
-  // Upsert champion stats data
-  await db.insert(championStats).values(statsData);
-
-  // Upsert score snapshot data
-  await db.insert(scoreSnapshots).values(snapshotData);
+  try {
+    await db.insert(championStats).values(statsData);
+  } catch (err) {
+    throw new SyncError(
+      'Failed to upsert stats data into the database',
+      'DB_ERROR',
+      false,
+      { cause: err }
+    );
+  }
 }

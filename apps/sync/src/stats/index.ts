@@ -1,4 +1,5 @@
 import { SupportedLocale } from '@wild-ryft/shared';
+
 import { SyncConfig } from '../types/config.js';
 import { fetchChampionData, fetchStatsData } from './fetch.js';
 import { transformStatsData } from './transform.js';
