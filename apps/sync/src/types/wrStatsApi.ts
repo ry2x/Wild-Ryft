@@ -76,3 +76,8 @@ export type WRChampionStats = {
   /** Statistics data */
   data: WRRankStats;
 };
+
+/**
+ * The map of heroId to championId for champions that are present in the WR data.
+ */
+export type WRConvertChampionIdData = Map<string | null, string>;

@@ -1,16 +1,18 @@
 import { sql } from 'drizzle-orm/sql/sql';
-
 import { championMaster, db } from '@wild-ryft/db';
-import { WRChampionStats } from '../types/wrStatsApi.js';
+
+import {
+  WRChampionStats,
+  WRConvertChampionIdData
+} from '../types/wrStatsApi.js';
 import { fetchData } from '../utils.js';
-import { WRConvertChampionIdData } from '../types/stats.js';
 
 export async function fetchStatsData(api: string): Promise<WRChampionStats> {
   const res = await fetchData<WRChampionStats>(api);
   return res.data;
 }
 
-export async function fetchChampionData(): Promise<WRConvertChampionIdData[]> {
+export async function fetchChampionData(): Promise<WRConvertChampionIdData> {
   const data = await db
     .select({
       heroId: championMaster.heroId,
@@ -18,5 +20,5 @@ export async function fetchChampionData(): Promise<WRConvertChampionIdData[]> {
     })
     .from(championMaster)
     .where(sql`${championMaster.isWr} = true`);
-  return data;
+  return new Map(data.map(({ heroId, championId }) => [heroId, championId]));
 }
