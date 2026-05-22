@@ -1,9 +1,11 @@
-import { Lane } from '@wild-ryft/shared';
+import { Lane, Rank } from '@wild-ryft/shared';
+
+import { WRLane, WRRankRange } from './types/wrStatsApi.js';
 
 /**
  * The mapping of lane names from CN API to the corresponding Lanes type.
  */
-export const LANE_MAPPING: Record<string, Lane> = {
+export const CN_LANE_MAPPING: Record<string, Lane> = {
   中路: 'mid',
   打野: 'jungle',
   单人路: 'top',
@@ -50,4 +52,26 @@ export const NO_WR_LANE: Record<string, Lane[]> = {
   Xerath: ['mid', 'support'],
   Yorick: ['top'],
   Zac: ['top', 'jungle']
+};
+
+/**
+ * The mapping of lane names from WR API to the corresponding Lanes
+ */
+export const STATS_LANE_MAPPING: Record<WRLane, Lane> = {
+  '1': 'mid',
+  '2': 'top',
+  '3': 'bot',
+  '4': 'support',
+  '5': 'jungle'
+};
+
+/**
+ * The mapping of rank ranges from WR API to the corresponding Rank
+ */
+export const STATS_RANK_MAPPING: Record<WRRankRange, Rank> = {
+  '0': 'all',
+  '1': 'diamond',
+  '2': 'master_plus',
+  '3': 'challenger',
+  '4': 'super_server'
 };

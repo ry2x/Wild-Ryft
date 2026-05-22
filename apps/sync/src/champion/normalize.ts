@@ -1,7 +1,7 @@
 import { Lane, Role, SupportedLocale } from '@wild-ryft/shared';
 import { NewChampionMaster, NewChampionText } from '@wild-ryft/db/schema';
 
-import { LANE_MAPPING, NO_WR_LANE } from '../constants.js';
+import { CN_LANE_MAPPING, NO_WR_LANE } from '../constants.js';
 import { DDChampionData } from '../types/ddApi.js';
 import { WRHeroData, WRHeroID } from '../types/wrHeroApi.js';
 
@@ -84,7 +84,7 @@ function createMasterData(options: CreateMasterDataOptions): NewChampionMaster {
 function convertLanes(lanes: string): Lane[] {
   return lanes
     .split(';')
-    .map((lane) => LANE_MAPPING[lane.trim()])
+    .map((lane) => CN_LANE_MAPPING[lane.trim()])
     .filter(Boolean) as Lane[];
 }
 
