@@ -3,6 +3,7 @@ import { SupportedLocale } from '@wild-ryft/shared';
 import { closeDb } from '@wild-ryft/db';
 
 import { syncChampionData } from './champion/index.js';
+import { syncStatsData } from './stats/index.js';
 import { loadConfig } from './config.js';
 import { SyncError } from './error.js';
 
@@ -21,6 +22,10 @@ export async function runSync(options: RunSyncOptions): Promise<void> {
   try {
     await runTask('champion', logger, () =>
       syncChampionData({ config, langs })
+    );
+
+    await runTask('champion_stats', logger, () =>
+      syncStatsData({ config, langs })
     );
   } finally {
     await closeDb();
