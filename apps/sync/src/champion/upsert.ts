@@ -8,6 +8,7 @@ import {
 import { sql } from 'drizzle-orm';
 
 import { conflictUpdateAllExcept } from '../utils.js';
+import { SyncError } from '../error.js';
 
 interface ChampionUpsertDataOptions {
   championMasterData: NewChampionMaster[];
@@ -21,24 +22,36 @@ interface ChampionUpsertDataOptions {
 export async function upsertChampionData(
   options: ChampionUpsertDataOptions
 ): Promise<void> {
-  const { championMasterData, championTextData } = options;
+  try {
+    const { championMasterData, championTextData } = options;
 
-  await db
-    .insert(championMaster)
-    .values(championMasterData)
-    .onConflictDoUpdate({
-      target: championMaster.champion_id,
-      set: conflictUpdateAllExcept(championMaster, ['champion_id', 'createdAt'])
-    });
+    await db
+      .insert(championMaster)
+      .values(championMasterData)
+      .onConflictDoUpdate({
+        target: championMaster.champion_id,
+        set: conflictUpdateAllExcept(championMaster, [
+          'champion_id',
+          'createdAt'
+        ])
+      });
 
-  await db
-    .insert(championTexts)
-    .values(championTextData)
-    .onConflictDoUpdate({
-      target: [championTexts.championId, championTexts.locale],
-      set: {
-        ...conflictUpdateAllExcept(championTexts, ['championId', 'locale']),
-        updatedAt: sql`now()`
-      }
-    });
+    await db
+      .insert(championTexts)
+      .values(championTextData)
+      .onConflictDoUpdate({
+        target: [championTexts.championId, championTexts.locale],
+        set: {
+          ...conflictUpdateAllExcept(championTexts, ['championId', 'locale']),
+          updatedAt: sql`now()`
+        }
+      });
+  } catch (err) {
+    throw new SyncError(
+      'Failed to upsert champion data into the database',
+      'DB_ERROR',
+      false,
+      { cause: err }
+    );
+  }
 }
