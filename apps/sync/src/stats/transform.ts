@@ -33,13 +33,13 @@ export function transformStatsData(
             rank: STATS_RANK_MAPPING[rankKey as WRRankRange],
             lane: STATS_LANE_MAPPING[laneKey as WRLane],
             pickRate: hero.appear_rate_float,
-            pickRateBzc: Number(hero.appear_bzc),
+            pickRateBzc: parseInt(hero.appear_bzc, 9),
             banRate: hero.forbid_rate_float,
-            banRateBzc: Number(hero.forbid_bzc),
+            banRateBzc: parseInt(hero.forbid_bzc, 9),
             winRate: hero.win_rate_float,
-            winRateBzc: Number(hero.win_bzc),
-            strength: Number(hero.strength),
-            strengthLevel: Number(hero.strength_level),
+            winRateBzc: parseInt(hero.win_bzc, 9),
+            strength: parseInt(hero.strength, 9),
+            strengthLevel: parseInt(hero.strength_level, 9),
             statsAt: new Date(hero.dtstatdate)
           };
         })
