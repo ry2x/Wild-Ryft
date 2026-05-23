@@ -1,12 +1,14 @@
-import 'dotenv/config';
 import { execFileSync } from 'child_process';
+import 'dotenv/config';
+import { sql } from 'drizzle-orm';
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { sql } from 'drizzle-orm';
-import { db, closeDb } from '../index.js';
+
+import type { Lane, Rank } from '@wild-ryft/shared';
+
+import { closeDb, db } from '../index.js';
 import { championStats } from '../schema.js';
-import type { Rank, Lane } from '@wild-ryft/shared';
 
 const STATS_REPO = 'https://github.com/ry2x/WildRift-Merged-Stats-Data.git';
 

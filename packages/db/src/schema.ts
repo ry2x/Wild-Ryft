@@ -1,18 +1,19 @@
+import { sql } from 'drizzle-orm';
 import {
-  pgTable,
   bigint,
-  text,
   boolean,
+  check,
+  doublePrecision,
+  index,
   integer,
   numeric,
-  doublePrecision,
+  pgTable,
+  primaryKey,
+  text,
   timestamp,
-  unique,
-  index,
-  check,
-  primaryKey
+  unique
 } from 'drizzle-orm/pg-core';
-import { sql } from 'drizzle-orm';
+
 import { LANES, RANKS, ROLES } from '@wild-ryft/shared';
 
 const toPgTextArray = (values: readonly string[]) =>

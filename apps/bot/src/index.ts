@@ -1,10 +1,11 @@
-import 'dotenv/config';
 import {
-  SapphireClient,
   ApplicationCommandRegistries,
-  RegisterBehavior
+  RegisterBehavior,
+  SapphireClient
 } from '@sapphire/framework';
 import { GatewayIntentBits } from 'discord.js';
+import 'dotenv/config';
+
 import { createLogger } from '@wild-ryft/logger';
 
 const logger = createLogger({

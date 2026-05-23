@@ -1,7 +1,7 @@
-import { getTableColumns, sql, Column } from 'drizzle-orm';
+import axios, { AxiosResponse } from 'axios';
+import { Column, getTableColumns, sql } from 'drizzle-orm';
 import { PgTable } from 'drizzle-orm/pg-core';
 
-import axios, { AxiosResponse } from 'axios';
 import { SyncError } from './error.js';
 
 export async function fetchData<T>(url: string): Promise<AxiosResponse<T>> {

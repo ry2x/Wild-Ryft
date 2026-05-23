@@ -1,11 +1,11 @@
 import { SupportedLocale } from '@wild-ryft/shared';
 
-import { SyncConfig } from '../types/config.js';
 import { SyncError } from '../error.js';
+import { SyncConfig } from '../types/config.js';
 import {
+  fetchChampionData,
   fetchDDVersion,
-  fetchWRChampionData,
-  fetchChampionData
+  fetchWRChampionData
 } from './fetch.js';
 import { addIdToWrData, mergeChampionData } from './normalize.js';
 import { upsertChampionData } from './upsert.js';

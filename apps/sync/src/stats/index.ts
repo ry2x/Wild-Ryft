@@ -1,10 +1,10 @@
 import { SupportedLocale } from '@wild-ryft/shared';
 
+import { SyncError } from '../error.js';
 import { SyncConfig } from '../types/config.js';
 import { fetchChampionData, fetchStatsData } from './fetch.js';
 import { transformStatsData } from './transform.js';
 import { upsertStatsData } from './upsert.js';
-import { SyncError } from '../error.js';
 
 export interface SyncStatsDataOptions {
   readonly config: SyncConfig;

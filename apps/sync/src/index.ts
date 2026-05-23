@@ -1,11 +1,11 @@
+import { closeDb } from '@wild-ryft/db';
 import type { Logger } from '@wild-ryft/logger';
 import { SupportedLocale } from '@wild-ryft/shared';
-import { closeDb } from '@wild-ryft/db';
 
 import { syncChampionData } from './champion/index.js';
-import { syncStatsData } from './stats/index.js';
 import { loadConfig } from './config.js';
 import { SyncError } from './error.js';
+import { syncStatsData } from './stats/index.js';
 
 export interface RunSyncOptions {
   readonly logger: Logger;

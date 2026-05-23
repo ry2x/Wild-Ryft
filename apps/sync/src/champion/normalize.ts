@@ -1,10 +1,10 @@
-import { Lane, Role, SupportedLocale } from '@wild-ryft/shared';
 import { NewChampionMaster, NewChampionText } from '@wild-ryft/db/schema';
+import { Lane, Role, SupportedLocale } from '@wild-ryft/shared';
 
 import { CN_LANE_MAPPING, NO_WR_LANE } from '../constants.js';
+import { SyncError } from '../error.js';
 import { DDChampionData } from '../types/ddApi.js';
 import { WRHeroData, WRHeroID } from '../types/wrHeroApi.js';
-import { SyncError } from '../error.js';
 
 /**
  * Extracts champion name from poster URL using regex

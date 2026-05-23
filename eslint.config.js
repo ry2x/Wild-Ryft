@@ -1,7 +1,7 @@
 import eslint from '@eslint/js';
-import tseslint from 'typescript-eslint';
 import eslintConfigPrettier from 'eslint-config-prettier';
 import { fileURLToPath } from 'node:url';
+import tseslint from 'typescript-eslint';
 
 const tsconfigRootDir = fileURLToPath(new URL('.', import.meta.url));
 

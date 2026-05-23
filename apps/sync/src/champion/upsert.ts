@@ -1,14 +1,15 @@
-import {
-  db,
-  championMaster,
-  championTexts,
-  NewChampionMaster,
-  NewChampionText
-} from '@wild-ryft/db';
 import { sql } from 'drizzle-orm';
 
-import { conflictUpdateAllExcept } from '../utils.js';
+import {
+  NewChampionMaster,
+  NewChampionText,
+  championMaster,
+  championTexts,
+  db
+} from '@wild-ryft/db';
+
 import { SyncError } from '../error.js';
+import { conflictUpdateAllExcept } from '../utils.js';
 
 interface ChampionUpsertDataOptions {
   championMasterData: NewChampionMaster[];

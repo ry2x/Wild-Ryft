@@ -1,14 +1,16 @@
 import 'dotenv/config';
 import { sql } from 'drizzle-orm';
-import { db, closeDb } from '../index.js';
-import { championMaster, championTexts } from '../schema.js';
+
 import {
-  SUPPORTED_LOCALES,
-  type SupportedLocale,
   LANES,
-  ROLES
+  ROLES,
+  SUPPORTED_LOCALES,
+  type SupportedLocale
 } from '@wild-ryft/shared';
-import type { Role, Lane } from '@wild-ryft/shared';
+import type { Lane, Role } from '@wild-ryft/shared';
+
+import { closeDb, db } from '../index.js';
+import { championMaster, championTexts } from '../schema.js';
 
 const REPO_BASE =
   'https://raw.githubusercontent.com/ry2x/WildRift-Merged-Champion-Data/gh-pages';

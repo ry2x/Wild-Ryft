@@ -1,7 +1,8 @@
 import 'dotenv/config';
+
+import { closeDb } from '../index.js';
 import { seedChampions } from './champion.js';
 import { seedStats } from './stats.js';
-import { closeDb } from '../index.js';
 
 console.log('=== Wild Ryft DB Seed ===');
 

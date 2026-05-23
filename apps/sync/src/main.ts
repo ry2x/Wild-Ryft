@@ -1,4 +1,5 @@
 import 'dotenv/config';
+
 import { createLogger } from '@wild-ryft/logger';
 import { SUPPORTED_LOCALES } from '@wild-ryft/shared';
 

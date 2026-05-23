@@ -1,13 +1,13 @@
 import { NewChampionStats } from '@wild-ryft/db';
 
+import { STATS_LANE_MAPPING, STATS_RANK_MAPPING } from '../constants.js';
+import { SyncError } from '../error.js';
 import {
   WRChampionStats,
+  WRConvertChampionIdData,
   WRLane,
-  WRRankRange,
-  WRConvertChampionIdData
+  WRRankRange
 } from '../types/wrStatsApi.js';
-import { STATS_RANK_MAPPING, STATS_LANE_MAPPING } from '../constants.js';
-import { SyncError } from '../error.js';
 
 export interface TransformedStatsData {
   wrStatsData: WRChampionStats;

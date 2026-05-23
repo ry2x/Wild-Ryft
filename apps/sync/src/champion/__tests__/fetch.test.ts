@@ -1,7 +1,7 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { fetchChampionData, fetchDDVersion } from '../fetch.js';
 import { fetchData } from '../../utils.js';
+import { fetchChampionData, fetchDDVersion } from '../fetch.js';
 
 vi.mock('../../utils.js', () => ({
   fetchData: vi.fn()

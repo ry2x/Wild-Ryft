@@ -1,4 +1,4 @@
-import { championStats, db, NewChampionStats } from '@wild-ryft/db';
+import { NewChampionStats, championStats, db } from '@wild-ryft/db';
 
 import { SyncError } from '../error.js';
 
