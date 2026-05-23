@@ -4,7 +4,7 @@ import config from '../../prettier.config.ts';
 
 const astroConfig: Config = {
   ...config,
-  plugins: ['prettier-plugin-astro'],
+  plugins: ['prettier-plugin-astro', '@trivago/prettier-plugin-sort-imports'],
   overrides: [
     {
       files: '*.astro',
