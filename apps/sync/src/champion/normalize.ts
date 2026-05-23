@@ -4,6 +4,7 @@ import { NewChampionMaster, NewChampionText } from '@wild-ryft/db/schema';
 import { CN_LANE_MAPPING, NO_WR_LANE } from '../constants.js';
 import { DDChampionData } from '../types/ddApi.js';
 import { WRHeroData, WRHeroID } from '../types/wrHeroApi.js';
+import { SyncError } from '../error.js';
 
 /**
  * Extracts champion name from poster URL using regex
@@ -39,19 +40,28 @@ interface MergedChampion {
 export function mergeChampionData(
   options: MergeChampionDataOptions
 ): MergedChampion {
-  const { riotData, wrData, lang } = options;
-  const masterData: NewChampionMaster[] = [];
-  const textData: NewChampionText[] = [];
+  try {
+    const { riotData, wrData, lang } = options;
+    const masterData: NewChampionMaster[] = [];
+    const textData: NewChampionText[] = [];
 
-  Object.values(riotData.data).forEach((champion) => {
-    const wrChampion = wrData.find(
-      (wrHero) => wrHero.id.toLowerCase() === champion.id.toLowerCase()
+    Object.values(riotData.data).forEach((champion) => {
+      const wrChampion = wrData.find(
+        (wrHero) => wrHero.id.toLowerCase() === champion.id.toLowerCase()
+      );
+      masterData.push(createMasterData({ riotChampion: champion, wrChampion }));
+      textData.push(createTextData({ riotChampion: champion, lang }));
+    });
+
+    return { masterData, textData };
+  } catch (err) {
+    throw new SyncError(
+      'Failed to merge champion data',
+      'NORMALIZATION_ERROR',
+      false,
+      { cause: err }
     );
-    masterData.push(createMasterData({ riotChampion: champion, wrChampion }));
-    textData.push(createTextData({ riotChampion: champion, lang }));
-  });
-
-  return { masterData, textData };
+  }
 }
 
 interface CreateMasterDataOptions {
