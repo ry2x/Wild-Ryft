@@ -3,7 +3,6 @@ import {
   bigint,
   boolean,
   check,
-  doublePrecision,
   index,
   integer,
   numeric,
@@ -14,13 +13,12 @@ import {
   unique
 } from 'drizzle-orm/pg-core';
 
-import { LANES, RANKS, ROLES } from '@wild-ryft/shared';
+import { LANES, RANKS, ROLES, TIERS } from '@wild-ryft/shared';
 
-const toPgTextArray = (values: readonly string[]) =>
-  sql`ARRAY[${sql.join(
-    values.map((v) => sql`${v}`),
-    sql`, `
-  )}]::text[]`;
+const toPgTextArray = (values: readonly string[]) => {
+  const literals = values.map((v) => `'${v.replace(/'/g, "''")}'`).join(', ');
+  return sql.raw(`ARRAY[${literals}]::text[]`);
+};
 
 export const championMaster = pgTable(
   'champion_master',
@@ -157,24 +155,10 @@ export const scoreSnapshots = pgTable(
       .references(() => championMaster.champion_id, { onDelete: 'cascade' }),
     rank: text('rank', { enum: RANKS }).notNull(),
     lane: text('lane', { enum: LANES }).notNull(),
-    score: doublePrecision('score').notNull(),
-    momentumScore: doublePrecision('momentum_score').notNull(),
-    winrateDiff: numeric('winrate_diff', {
-      precision: 9,
-      scale: 6,
-      mode: 'string'
-    }).notNull(),
-    banrateDiff: numeric('banrate_diff', {
-      precision: 9,
-      scale: 6,
-      mode: 'string'
-    }).notNull(),
-    pickrateDiff: numeric('pickrate_diff', {
-      precision: 9,
-      scale: 6,
-      mode: 'string'
-    }).notNull(),
-    snapshotAt: timestamp('snapshot_at', { precision: 2 }).notNull()
+    snapshotAt: timestamp('snapshot_at', { precision: 2 }).notNull(),
+    score: integer('score').notNull(),
+    tier: text('tier', { enum: TIERS }).notNull(),
+    presenceRate: integer('presence_rate').notNull()
   },
   (t) => [
     check(
@@ -185,6 +169,7 @@ export const scoreSnapshots = pgTable(
       'score_snapshots_lane_allowed',
       sql`${t.lane} = ANY(${toPgTextArray(LANES)})`
     ),
+    check('tier_allowed', sql`${t.tier} = ANY(${toPgTextArray(TIERS)})`),
     unique('uq_score_snapshots_snapshot').on(
       t.championId,
       t.rank,

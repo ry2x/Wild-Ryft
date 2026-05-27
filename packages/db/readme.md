@@ -100,11 +100,11 @@ Score/momentum delta snapshots used for ranking evaluation.
 - Foreign key: `champion_id -> champion_master.champion_id` (`ON DELETE CASCADE`)
 - Main columns:
 	- `rank`, `lane`
-	- `score`, `momentum_score` (`double precision`)
-	- `winrate_diff`, `banrate_diff`, `pickrate_diff` (`numeric(9,6)`, Drizzle `mode: 'string'`)
-	- `snapshot_at`
+	- `score` (`integer`)
+	- `tier` (enum-constrained text)
+	- `presence_rate` (`integer`, 0-100)
 - Checks:
-	- `rank` and `lane` are restricted to shared enum values
+	- `rank`, `lane` and `tier` are restricted to shared enum values
 - Unique snapshot key:
 	- `uq_score_snapshots_snapshot` on (`champion_id`, `rank`, `lane`, `snapshot_at`)
 - Indexes:
