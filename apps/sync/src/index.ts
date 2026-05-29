@@ -5,6 +5,7 @@ import { SupportedLocale } from '@wild-ryft/shared';
 import { syncChampionData } from './champion/index.js';
 import { loadConfig } from './config.js';
 import { SyncError } from './error.js';
+import { syncScore } from './snapshot/index.js';
 import { syncStatsData } from './stats/index.js';
 
 export interface RunSyncOptions {
@@ -27,6 +28,8 @@ export async function runSync(options: RunSyncOptions): Promise<void> {
     await runTask('champion_stats', logger, () =>
       syncStatsData({ config, langs })
     );
+
+    await runTask('score_snapshot', logger, () => syncScore());
   } finally {
     await closeDb();
   }
