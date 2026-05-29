@@ -1,7 +1,7 @@
 export const LANES = ['top', 'jungle', 'mid', 'bot', 'support'] as const;
 export type Lane = (typeof LANES)[number];
 
-export const TIERS = ['S+', 'S', 'A', 'B', 'C', 'D'] as const;
+export const TIERS = ['OP', 'S', 'A', 'B', 'C'] as const;
 export type Tier = (typeof TIERS)[number];
 
 export const RANKS = [
