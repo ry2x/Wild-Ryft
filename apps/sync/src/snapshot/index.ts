@@ -1,12 +1,16 @@
 import { SyncError } from '../error.js';
-import { fetchChampionStatsData } from './fetch.js';
+import { fetchChampionStatsData, fetchYesterdayStatsData } from './fetch.js';
 import { generateAllChampionScores } from './score.js';
 import { upsertScoreData } from './upsert.js';
 
 export async function syncScore(): Promise<void> {
   try {
     const championStats = await fetchChampionStatsData();
-    const allScores = generateAllChampionScores(championStats);
+    const lastChampionStats = await fetchYesterdayStatsData();
+    const allScores = generateAllChampionScores({
+      championStats,
+      lastChampionStats
+    });
     await upsertScoreData(allScores);
   } catch (err) {
     throw new SyncError(
