@@ -32,15 +32,15 @@ export function transformStatsData(
             championId,
             rank: STATS_RANK_MAPPING[rankKey as WRRankRange],
             lane: STATS_LANE_MAPPING[laneKey as WRLane],
-            pickRate: hero.appear_rate_float,
-            pickRateBzc: parseInt(hero.appear_bzc, 9),
-            banRate: hero.forbid_rate_float,
-            banRateBzc: parseInt(hero.forbid_bzc, 9),
-            winRate: hero.win_rate_float,
-            winRateBzc: parseInt(hero.win_bzc, 9),
-            strength: parseInt(hero.strength, 9),
-            strengthLevel: parseInt(hero.strength_level, 9),
-            statsAt: new Date(hero.dtstatdate)
+            pickRate: hero.appear_rate_percent,
+            pickRateBzc: parseInt(hero.appear_bzc, 10),
+            banRate: hero.forbid_rate_percent,
+            banRateBzc: parseInt(hero.forbid_bzc, 10),
+            winRate: hero.win_rate_percent,
+            winRateBzc: parseInt(hero.win_bzc, 10),
+            strength: parseInt(hero.strength, 10),
+            strengthLevel: parseInt(hero.strength_level, 10),
+            statsAt: parseStatsDate(hero.dtstatdate)
           };
         })
       )
@@ -54,4 +54,15 @@ export function transformStatsData(
       { cause: err }
     );
   }
+}
+
+function parseStatsDate(value: string): Date {
+  if (/^\d{8}$/.test(value)) {
+    const year = value.slice(0, 4);
+    const month = value.slice(4, 6);
+    const day = value.slice(6, 8);
+    return new Date(`${year}-${month}-${day}T00:00:00.000Z`);
+  }
+
+  return new Date(value);
 }
