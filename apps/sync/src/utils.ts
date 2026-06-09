@@ -4,9 +4,11 @@ import { PgTable } from 'drizzle-orm/pg-core';
 
 import { SyncError } from './error.js';
 
+const FETCH_TIMEOUT_MS = 30_000;
+
 export async function fetchData<T>(url: string): Promise<AxiosResponse<T>> {
   try {
-    return await axios.get<T>(url);
+    return await axios.get<T>(url, { timeout: FETCH_TIMEOUT_MS });
   } catch (err) {
     throw new SyncError(
       `Failed to fetch data from ${url}`,
