@@ -1,35 +1,56 @@
 import { ChampionStats, NewScoreSnapshot } from '@wild-ryft/db';
 import { Tier } from '@wild-ryft/shared';
 
-export function generateAllChampionScores(
-  championStats: ChampionStats[]
-): NewScoreSnapshot[] {
-  // Group champion stats by rank and lane
-  const grouped: Record<string, ChampionStats[]> = {};
+import { LastChampionStats } from '../types/momentum.js';
 
-  for (const stat of championStats) {
-    const groupKey = `${stat.rank}_${stat.lane}`;
-    if (!grouped[groupKey]) {
-      grouped[groupKey] = [];
-    }
-    grouped[groupKey].push(stat);
-  }
+export interface generateAllChampionScoresOptions {
+  championStats: ChampionStats[];
+  lastChampionStats: LastChampionStats[];
+}
+
+export function generateAllChampionScores(
+  options: generateAllChampionScoresOptions
+): NewScoreSnapshot[] {
+  const { championStats, lastChampionStats } = options;
+  // Group champion stats by rank and lane
+  const grouped = groupByRankAndLane(championStats);
+  const lastGrouped = groupByRankAndLane(lastChampionStats);
 
   const allScores: NewScoreSnapshot[] = [];
 
   // Generate scores for each group
   for (const groupKey in grouped) {
     const groupStats = grouped[groupKey];
-    const snapshots = generateScoresForGroup(groupStats);
+    const lastGroupStats = lastGrouped[groupKey] || [];
+    const snapshots = generateScoresForGroup({
+      championStats: groupStats,
+      lastChampionStats: lastGroupStats
+    });
     allScores.push(...snapshots);
   }
 
   return allScores;
 }
 
+function groupByRankAndLane<T extends ChampionStats | LastChampionStats>(
+  stats: T[]
+): Record<string, T[]> {
+  const grouped: Record<string, T[]> = {};
+
+  for (const stat of stats) {
+    const groupKey = `${stat.rank}_${stat.lane}`;
+    if (!grouped[groupKey]) {
+      grouped[groupKey] = [];
+    }
+    grouped[groupKey].push(stat);
+  }
+  return grouped;
+}
+
 function generateScoresForGroup(
-  statsList: ChampionStats[]
+  option: generateAllChampionScoresOptions
 ): NewScoreSnapshot[] {
+  const { championStats: statsList, lastChampionStats: lastStatsList } = option;
   if (statsList.length === 0) return [];
 
   // 1. Calculate Environment Averages
@@ -38,9 +59,9 @@ function generateScoresForGroup(
   let totalBanRate = 0;
 
   const parsedStats = statsList.map((stats) => {
-    const win = parseFloat(stats.winRate) * 100;
-    const pick = parseFloat(stats.pickRate) * 100;
-    const ban = parseFloat(stats.banRate) * 100;
+    const win = parseFloat(stats.winRate);
+    const pick = parseFloat(stats.pickRate);
+    const ban = parseFloat(stats.banRate);
     totalWinRate += win;
     totalPickRate += pick;
     totalBanRate += ban;
@@ -86,15 +107,36 @@ function generateScoresForGroup(
       tier = 'C'; // Weak / C
     }
 
+    // 4. Momentum Score Calculation
+    // Momentum is based on how the current score compares to the last snapshot's score
+    // Win Rate is heavily weighted (x2), Ban Rate (x1.5) since it indicates 'fear/strength', Pick Rate (x1)
+    // I think <2.5 score change is just noise
+    const lastStats = lastStatsList.find(
+      (s) => s.championId === stats.championId
+    ) || {
+      championId: stats.championId,
+      winRate: stats.winRate,
+      pickRate: stats.pickRate,
+      banRate: stats.banRate,
+      lane: stats.lane,
+      rank: stats.rank
+    };
+
+    const winDiff = win - parseFloat(lastStats.winRate);
+    const pickDiff = pick - parseFloat(lastStats.pickRate);
+    const banDiff = ban - parseFloat(lastStats.banRate);
+
+    const momentumScore = winDiff * 2 + pickDiff + banDiff * 1.5;
+
     return {
       championId: stats.championId,
-      id: stats.id,
       rank: stats.rank,
       lane: stats.lane,
       snapshotAt: new Date(),
-      score: Math.round(score * 100) / 100, // Round to 2 decimal places
+      score: Math.round(score),
       tier,
-      presenceRate: Math.round((pick + ban) * 100) / 100
+      presenceRate: Math.round(pick + ban),
+      momentumScore: momentumScore.toFixed(6)
     };
   });
 }
