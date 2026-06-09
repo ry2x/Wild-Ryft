@@ -20,7 +20,12 @@ const logger = createLogger({
 
 const langs = [...SUPPORTED_LOCALES];
 
-runSync({ logger, langs }).catch((error) => {
-  logger.error('Sync process failed', { error });
-  process.exit(1);
-});
+runSync({ logger, langs })
+  .then(() => {
+    logger.info('Sync process completed successfully');
+    process.exit(0);
+  })
+  .catch((error) => {
+    logger.error('Sync process failed', { error });
+    process.exit(1);
+  });
