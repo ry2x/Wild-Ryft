@@ -49,9 +49,15 @@ export async function syncChampionData(
       championTextData.push(...mergedData.textData);
     }
 
+    const uniqueChampionMasterData = Array.from(
+      new Map(
+        championMasterData.map((champion) => [champion.champion_id, champion])
+      ).values()
+    );
+
     // Upsert merged champion data into DB
     await upsertChampionData({
-      championMasterData,
+      championMasterData: uniqueChampionMasterData,
       championTextData
     });
   } catch (err) {

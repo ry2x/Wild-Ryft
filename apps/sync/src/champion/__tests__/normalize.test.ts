@@ -72,6 +72,7 @@ describe('mergeChampionData', () => {
       {
         champion_id: 'Garen',
         championKey: '86',
+        heroId: '10001',
         championType: 'None',
         isWr: true,
         roles: ['fighter', 'tank'],
@@ -98,6 +99,7 @@ describe('mergeChampionData', () => {
       {
         champion_id: 'Garen',
         championKey: '86',
+        heroId: null,
         championType: 'None',
         isWr: false,
         roles: ['fighter', 'tank'],

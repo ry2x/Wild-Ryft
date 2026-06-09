@@ -74,6 +74,7 @@ function createMasterData(options: CreateMasterDataOptions): NewChampionMaster {
   return {
     champion_id: riotChampion.id,
     championKey: riotChampion.key,
+    heroId: wrChampion?.heroId ?? null,
     championType: riotChampion.partype,
     isWr: !!wrChampion,
     roles: riotChampion.tags.map((tag) => tag.toLowerCase() as Role),
