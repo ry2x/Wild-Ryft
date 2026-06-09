@@ -41,6 +41,7 @@ async function runTask(
   task: () => Promise<void>
 ): Promise<void> {
   try {
+    logger.info(`Starting ${name} sync`);
     await task();
     logger.info(`${name} sync completed`);
   } catch (err) {
