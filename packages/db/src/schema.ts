@@ -158,7 +158,12 @@ export const scoreSnapshots = pgTable(
     snapshotAt: timestamp('snapshot_at', { precision: 2 }).notNull(),
     score: integer('score').notNull(),
     tier: text('tier', { enum: TIERS }).notNull(),
-    presenceRate: integer('presence_rate').notNull()
+    presenceRate: integer('presence_rate').notNull(),
+    momentumScore: numeric('momentum_score', {
+      precision: 9,
+      scale: 6,
+      mode: 'string'
+    }).notNull()
   },
   (t) => [
     check(
