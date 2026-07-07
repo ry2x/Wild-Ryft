@@ -15,6 +15,7 @@
     "seed": "tsx src/seed/index.ts",
     "seed:champion": "tsx src/seed/champion.ts",
     "seed:stats": "tsx src/seed/stats.ts",
+    "seed:score": "tsx src/seed/score.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

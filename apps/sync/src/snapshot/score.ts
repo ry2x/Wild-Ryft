@@ -12,13 +12,11 @@ export function generateAllChampionScores(
   options: generateAllChampionScoresOptions
 ): NewScoreSnapshot[] {
   const { championStats, lastChampionStats } = options;
-  // Group champion stats by rank and lane
   const grouped = groupByRankAndLane(championStats);
   const lastGrouped = groupByRankAndLane(lastChampionStats);
 
   const allScores: NewScoreSnapshot[] = [];
 
-  // Generate scores for each group
   for (const groupKey in grouped) {
     const groupStats = grouped[groupKey];
     const lastGroupStats = lastGrouped[groupKey] || [];
@@ -53,7 +51,6 @@ function generateScoresForGroup(
   const { championStats: statsList, lastChampionStats: lastStatsList } = option;
   if (statsList.length === 0) return [];
 
-  // 1. Calculate Environment Averages
   let totalWinRate = 0;
   let totalPickRate = 0;
   let totalBanRate = 0;
@@ -73,44 +70,35 @@ function generateScoresForGroup(
   const avgPickRate = totalPickRate / count;
   const avgBanRate = totalBanRate / count;
 
-  // 2. Score Calculation and Mapping
-  // These weights dictate how much 1% above average impacts the score.
-  const WIN_WEIGHT = 5; // 1% above avg win rate = +5 score
-  const PICK_WEIGHT = 1.5; // 1% above avg pick rate = +1.5 score
-  const BAN_WEIGHT = 1; // 1% above avg ban rate = +1 score
+  const WIN_WEIGHT = 5;
+  const PICK_WEIGHT = 1.5;
+  const BAN_WEIGHT = 1;
 
   return parsedStats.map(({ stats, win, pick, ban }) => {
-    // Calculate Deltas (Deviation from the environment average)
     const winRateDelta = win - avgWinRate;
     const pickRateDelta = pick - avgPickRate;
     const banRateDelta = ban - avgBanRate;
 
-    // Base score is 50 for a perfectly average champion
     const score =
       50 +
       winRateDelta * WIN_WEIGHT +
       pickRateDelta * PICK_WEIGHT +
       banRateDelta * BAN_WEIGHT;
 
-    // 3. Absolute Tier Assignment
     let tier: Tier;
 
     if (score >= 90) {
-      tier = 'OP'; // OP / S+
+      tier = 'OP';
     } else if (score >= 65) {
-      tier = 'S'; // Strong / S
+      tier = 'S';
     } else if (score >= 40) {
-      tier = 'A'; // Average / A
+      tier = 'A';
     } else if (score >= 25) {
-      tier = 'B'; // Below Average / B
+      tier = 'B';
     } else {
-      tier = 'C'; // Weak / C
+      tier = 'C';
     }
 
-    // 4. Momentum Score Calculation
-    // Momentum is based on how the current score compares to the last snapshot's score
-    // Win Rate is heavily weighted (x2), Ban Rate (x1.5) since it indicates 'fear/strength', Pick Rate (x1)
-    // I think <2.5 score change is just noise
     const lastStats = lastStatsList.find(
       (s) => s.championId === stats.championId
     ) || {
