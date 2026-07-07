@@ -94,15 +94,17 @@ Per-rank and per-lane champion metric snapshots.
 
 ### `score_snapshots`
 
-Score/momentum delta snapshots used for ranking evaluation.
+Derived champion ranking snapshots for each rank/lane at a point in time.
 
 - Primary key: `id` (`bigint`, identity)
 - Foreign key: `champion_id -> champion_master.champion_id` (`ON DELETE CASCADE`)
 - Main columns:
 	- `rank`, `lane`
-	- `score` (`integer`)
-	- `tier` (enum-constrained text)
-	- `presence_rate` (`integer`, 0-100)
+	- `snapshot_at` (`timestamp(2)`) snapshot capture time
+	- `score` (`integer`) rounded relative ranking score
+	- `tier` (enum-constrained text: `OP | S | A | B | C`)
+	- `presence_rate` (`integer`) rounded `pick_rate + ban_rate`
+	- `momentum_score` (`numeric(9,6)`, Drizzle `mode: 'string'`) change signal versus the previous snapshot
 - Checks:
 	- `rank`, `lane` and `tier` are restricted to shared enum values
 - Unique snapshot key:
@@ -122,4 +124,3 @@ The package exports table model select types:
 - `ScoreSnapshot`
 
 Use these when sharing DB result types across `apps/*` and `packages/*`.
-
