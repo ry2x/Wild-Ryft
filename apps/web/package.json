@@ -16,6 +16,8 @@
     "@wild-ryft/db": "workspace:*",
     "@wild-ryft/shared": "workspace:*",
     "astro": "^6.2.2",
+    "drizzle-orm": "^0.45.2",
+    "i18next": "^26.3.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
