@@ -1,0 +1,344 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getChampions } from '../lib/db';
+import { SUPPORTED_LOCALES, LOCALE_LABELS } from '@wild-ryft/shared';
+import { getI18n, getRankLabels } from '../lib/i18n';
+
+const { locale, t } = await getI18n(Astro.cookies.get('locale')?.value);
+const champions = await getChampions(locale);
+
+// Prepare simple ID to Name map for client script lookup
+const championNameMap = champions.reduce((acc, c) => {
+  acc[c.id] = c.name;
+  return acc;
+}, {} as Record<string, string>);
+
+const rankLabels = getRankLabels(t);
+const page = {
+  title: t('pages.profile.title'),
+  header: t('pages.profile.header'),
+  langTitle: t('pages.profile.langTitle'),
+  langDesc: t('pages.profile.langDesc'),
+  favTitle: t('pages.profile.favTitle'),
+  favDesc: t('pages.profile.favDesc'),
+  clearAll: t('pages.profile.clearAll'),
+  noFavs: t('pages.profile.noFavs'),
+  prefTitle: t('pages.profile.prefTitle'),
+  prefDesc: t('pages.profile.prefDesc'),
+  defaultRankLabel: t('pages.profile.defaultRankLabel'),
+  removeBtn: t('pages.profile.removeBtn')
+};
+---
+
+<Layout title={page.title}>
+  <div class="animated-fade-in profile-page-container">
+    <div style="margin-bottom: 24px;">
+      <h1 style="font-family: var(--font-heading); font-size: 1.8rem; font-weight: 800; margin-bottom: 4px;">
+        {page.header}
+      </h1>
+    </div>
+
+    <!-- 1. Language Select Card -->
+    <div class="settings-card glass">
+      <div class="card-left">
+        <h2 class="settings-sec-title">{page.langTitle}</h2>
+        <p class="settings-sec-desc">{page.langDesc}</p>
+      </div>
+      <div class="card-right">
+        <div class="select-wrapper">
+          <select id="locale-selector" class="custom-select">
+            {SUPPORTED_LOCALES.map(loc => (
+              <option value={loc} selected={locale === loc}>
+                {LOCALE_LABELS[loc]}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Preferences Card -->
+    <div class="settings-card glass">
+      <div class="card-left">
+        <h2 class="settings-sec-title">{page.prefTitle}</h2>
+        <p class="settings-sec-desc">{page.prefDesc}</p>
+      </div>
+      <div class="card-right" style="display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 250px;">
+        <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+          {page.defaultRankLabel}
+        </label>
+        <div class="select-wrapper">
+          <select id="pref-rank" class="custom-select" style="width: 100%;">
+            <option value="all">{rankLabels.all}</option>
+            <option value="diamond">{rankLabels.diamond}</option>
+            <option value="master_plus">{rankLabels.master_plus}</option>
+            <option value="challenger">{rankLabels.challenger}</option>
+            <option value="super_server">{rankLabels.super_server}</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Favorites Card -->
+    <div class="settings-card glass favorites-card">
+      <div class="fav-header">
+        <div>
+          <h2 class="settings-sec-title">{page.favTitle}</h2>
+          <p class="settings-sec-desc">{page.favDesc}</p>
+        </div>
+        <button id="clear-all-favs" class="clear-btn">
+          {page.clearAll}
+        </button>
+      </div>
+
+      <div id="fav-list-container" class="fav-list-wrapper">
+        <!-- Rendered by client script below -->
+        <div class="empty-favs">{page.noFavs}</div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script is:inline define:vars={{ championNameMap, locale, t: page }}>
+  // 1. Language selector handler
+  const locSelect = document.getElementById('locale-selector');
+  if (locSelect) {
+    locSelect.addEventListener('change', (e) => {
+      const selectedLocale = e.target.value;
+      // Set cookie for 1 year
+      document.cookie = `locale=${selectedLocale}; path=/; max-age=${60 * 60 * 24 * 365}`;
+      window.location.reload();
+    });
+  }
+
+  // 2. Preferences handler
+  const prefRankSelect = document.getElementById('pref-rank');
+  if (prefRankSelect) {
+    // Load from localStorage
+    const savedRank = localStorage.getItem('wr_default_rank') || 'all';
+    prefRankSelect.value = savedRank;
+
+    prefRankSelect.addEventListener('change', (e) => {
+      localStorage.setItem('wr_default_rank', e.target.value);
+    });
+  }
+
+  // 3. Favorites renderer
+  const renderFavoritesList = () => {
+    const container = document.getElementById('fav-list-container');
+    if (!container) return;
+
+    let favorites = [];
+    try {
+      favorites = JSON.parse(localStorage.getItem('wr_fav_champions') || '[]');
+    } catch(e) {}
+
+    if (favorites.length === 0) {
+      container.innerHTML = `<div class="empty-favs">${t.noFavs}</div>`;
+      return;
+    }
+
+    let html = '<div class="favs-grid">';
+    favorites.forEach(champId => {
+      const name = championNameMap[champId] || champId;
+      html += `
+        <div class="fav-row-item glass" data-id="${champId}">
+          <div class="fav-left">
+            <img src="https://ddragon.leagueoflegends.com/cdn/14.10.1/img/champion/${champId}.png" alt="${name}" class="fav-item-avatar" onerror="this.src='data:image/svg+xml;utf8,<svg width=40 height=40 fill=%23101a30 xmlns=http://www.w3.org/2000/svg><rect width=40 height=40 fill=%23101a30 /><text x=20 y=24 fill=%23c89b3c font-size=16 font-weight=bold text-anchor=middle>${champId.slice(0,2).toUpperCase()}</text></svg>'" />
+            <a href="/champion/${champId}" class="fav-item-name">${name}</a>
+          </div>
+          <button class="remove-fav-btn" data-id="${champId}">${t.removeBtn}</button>
+        </div>
+      `;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+
+    // Attach individual remove event listeners
+    const removeBtns = container.querySelectorAll('.remove-fav-btn');
+    removeBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.target.getAttribute('data-id');
+        let favs = [];
+        try {
+          favs = JSON.parse(localStorage.getItem('wr_fav_champions') || '[]');
+        } catch(e) {}
+        
+        const updated = favs.filter(x => x !== id);
+        localStorage.setItem('wr_fav_champions', JSON.stringify(updated));
+        renderFavoritesList();
+      });
+    });
+  };
+
+  // 4. Clear all button handler
+  const clearBtn = document.getElementById('clear-all-favs');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      localStorage.setItem('wr_fav_champions', JSON.stringify([]));
+      renderFavoritesList();
+    });
+  }
+
+  // Load favorites list
+  renderFavoritesList();
+  
+  // Astro view transition lifecycle support
+  document.addEventListener('astro:page-load', () => {
+    renderFavoritesList();
+    // Load preferences
+    const prefRank = document.getElementById('pref-rank');
+    if (prefRank) {
+      prefRank.value = localStorage.getItem('wr_default_rank') || 'all';
+    }
+  });
+</script>
+
+<style>
+  .profile-page-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .settings-card {
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  @media (min-width: 768px) {
+    .settings-card {
+      flex-direction: row;
+      align-items: center;
+    }
+  }
+
+  .card-left {
+    flex: 1;
+  }
+
+  .settings-sec-title {
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+  }
+
+  .settings-sec-desc {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  /* Favorites Section */
+  .favorites-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fav-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+  }
+
+  .clear-btn {
+    background: rgba(255, 70, 85, 0.1);
+    border: 1px solid var(--tier-op);
+    color: var(--tier-op);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-fast);
+  }
+
+  .clear-btn:hover {
+    background: var(--tier-op);
+    color: #fff;
+  }
+
+  .fav-list-wrapper {
+    min-height: 80px;
+  }
+
+  .empty-favs {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    padding: 24px 0;
+  }
+
+  .favs-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  @media (min-width: 768px) {
+    .favs-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .fav-row-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.2);
+  }
+
+  .fav-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .fav-item-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--border-subtle);
+    object-fit: cover;
+  }
+
+  .fav-item-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 0.95rem;
+  }
+
+  .fav-item-name:hover {
+    color: var(--accent-cyan);
+  }
+
+  .remove-fav-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition-fast);
+  }
+
+  .remove-fav-btn:hover {
+    background: rgba(255, 70, 85, 0.1);
+    color: var(--tier-op);
+    border-color: var(--tier-op);
+  }
+</style>

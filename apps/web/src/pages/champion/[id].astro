@@ -1,0 +1,694 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getChampionDetail } from '../../lib/db';
+import type { Rank, Lane } from '@wild-ryft/shared';
+import { getI18n, getLaneLabels } from '../../lib/i18n';
+
+const { id } = Astro.params;
+const rank = (Astro.url.searchParams.get('rank') as Rank) || 'all';
+const lane = (Astro.url.searchParams.get('lane') as Lane | 'all') || 'all';
+const { locale, t } = await getI18n(Astro.cookies.get('locale')?.value);
+
+if (!id) {
+  return Astro.redirect('/explore');
+}
+
+const detail = await getChampionDetail(id, locale, rank, lane);
+
+if (!detail) {
+  return Astro.redirect('/explore');
+}
+
+const { master, text, latestStats, scoreInfo, trends } = detail;
+
+// Extract primary metrics (handle multiple lanes if lane was 'all')
+const activeStat = latestStats && latestStats.length > 0 
+  ? (lane !== 'all' ? latestStats.find(s => s.lane === lane) || latestStats[0] : latestStats[0])
+  : null;
+
+const activeScore = scoreInfo && scoreInfo.length > 0
+  ? (lane !== 'all' ? scoreInfo.find(s => s.lane === lane) || scoreInfo[0] : scoreInfo[0])
+  : null;
+
+// Calculate Radar Chart Coordinates
+// Center (100, 100). Max stat value is 3. Radius = 70.
+const center = 100;
+const maxVal = 3;
+const r = 70;
+const scale = r / maxVal;
+
+// Axes coordinates:
+// Up = Damage, Right = Utility, Down = Difficulty, Left = Survive
+const dmgY = center - master.damage * scale;
+const utlX = center + master.utility * scale;
+const dfcY = center + master.difficult * scale;
+const srvX = center - master.survive * scale;
+
+const polygonPoints = `${center},${dmgY} ${utlX},${center} ${center},${dfcY} ${srvX},${center}`;
+
+// Sub-grid diamond coordinates (for visual guidelines at 1, 2, 3 values)
+const gridDiamonds = [1, 2, 3].map(val => {
+  const dist = val * scale;
+  return `${center},${center - dist} ${center + dist},${center} ${center},${center + dist} ${center - dist},${center}`;
+});
+
+// Chronological trends for the line chart (last 8 points)
+const sortedTrends = trends
+  .sort((a, b) => a.statsAt.getTime() - b.statsAt.getTime())
+  .slice(-8);
+
+const trendWrHistory = sortedTrends.map(t => t.winRate);
+const trendDates = sortedTrends.map(t => {
+  const d = new Date(t.statsAt);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+});
+
+// Mini trend chart coords: width = 240, height = 120
+const trendWidth = 240;
+const trendHeight = 120;
+const tPaddingLeft = 35;
+const tPaddingRight = 10;
+const tPaddingTop = 15;
+const tPaddingBottom = 20;
+
+const tMinWr = trendWrHistory.length > 0 ? Math.max(0, Math.floor(Math.min(...trendWrHistory) - 1)) : 45;
+const tMaxWr = trendWrHistory.length > 0 ? Math.min(100, Math.ceil(Math.max(...trendWrHistory) + 1)) : 55;
+const tWrDiff = tMaxWr - tMinWr || 1;
+
+const getTrendX = (index: number) => {
+  return tPaddingLeft + (index * (trendWidth - tPaddingLeft - tPaddingRight) / (trendWrHistory.length - 1 || 1));
+};
+
+const getTrendY = (val: number) => {
+  return trendHeight - tPaddingBottom - ((val - tMinWr) * (trendHeight - tPaddingTop - tPaddingBottom) / tWrDiff);
+};
+
+// Line path
+let linePathD = '';
+trendWrHistory.forEach((rate, idx) => {
+  const x = getTrendX(idx);
+  const y = getTrendY(rate);
+  if (idx === 0) linePathD = `M ${x} ${y}`;
+  else linePathD += ` L ${x} ${y}`;
+});
+
+const laneLabels = getLaneLabels(t);
+const getLaneLabel = (l: Lane) => {
+  return laneLabels[l] || l.toUpperCase();
+};
+
+const page = {
+  back: t('pages.champion.back'),
+  difficulty: t('pages.champion.difficulty'),
+  damage: t('pages.champion.damage'),
+  survive: t('pages.champion.survive'),
+  utility: t('pages.champion.utility'),
+  profile: t('pages.champion.profile'),
+  roles: t('pages.champion.roles'),
+  recommendedLanes: t('pages.champion.recommendedLanes'),
+  performance: t('pages.champion.performance'),
+  wr: t('pages.champion.wr'),
+  pr: t('pages.champion.pr'),
+  br: t('pages.champion.br'),
+  momentum: t('pages.champion.momentum'),
+  trendTitle: t('pages.champion.trendTitle'),
+  lore: t('pages.champion.lore'),
+  type: t('pages.champion.type'),
+  statsRadar: t('pages.champion.statsRadar'),
+  score: t('common.metrics.score')
+};
+
+const getFallbackIcon = (name: string) => {
+  const initials = name.slice(0, 2).toUpperCase();
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="#101a30"/><text x="40" y="46" font-family="Outfit, sans-serif" font-size="28" font-weight="bold" fill="#c89b3c" text-anchor="middle">textPlaceholder</text></svg>`.replace('textPlaceholder', initials);
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+};
+---
+
+<Layout title={text.name}>
+  <div class="animated-fade-in champ-detail-page">
+    
+    <!-- Navigation back -->
+    <a href="javascript:history.back()" class="back-link">
+      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      {page.back}
+    </a>
+
+    <!-- Splash Art Banner header -->
+    <div class="detail-hero-banner" style={`background-image: linear-gradient(180deg, rgba(5, 8, 17, 0.4) 0%, var(--bg-deep) 100%), url('https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${id}_0.jpg')`}>
+      <div class="hero-banner-content">
+        <div class="hero-left">
+          <img 
+            src={`https://ddragon.leagueoflegends.com/cdn/14.10.1/img/champion/${id}.png`} 
+            alt={text.name}
+            class="detail-avatar"
+            onerror={`this.onerror=null; this.src='${getFallbackIcon(text.name)}';`}
+          />
+          <div class="detail-title-group">
+            <h1 class="detail-name">{text.name}</h1>
+            <p class="detail-subtitle">{text.title || id}</p>
+          </div>
+        </div>
+        {activeScore && (
+          <span class={`tier-badge large ${activeScore.tier.toLowerCase()}`}>{activeScore.tier}</span>
+        )}
+      </div>
+    </div>
+
+    <!-- Responsive content grid -->
+    <div class="detail-content-grid">
+      
+      <!-- LEFT COLUMN: Lore, Attribute bars, Radar -->
+      <div class="detail-col-left">
+        <!-- Attributes Card -->
+        <div class="detail-card glass attributes-card">
+          <h2 class="card-sec-title">{page.statsRadar}</h2>
+          
+          <div class="radar-and-bars">
+            <!-- SVG Radar Chart -->
+            <div class="radar-chart-wrapper">
+              <svg width="200" height="200" viewBox="0 0 200 200">
+                <!-- Concentric Guide Diamonds -->
+                {gridDiamonds.map((pts) => (
+                  <polygon 
+                    points={pts} 
+                    fill="none" 
+                    stroke="rgba(255,255,255,0.06)" 
+                    stroke-width="1"
+                  />
+                ))}
+                
+                <!-- Axis lines -->
+                <line x1={center} y1={center - r} x2={center} y2={center + r} stroke="rgba(255,255,255,0.08)" />
+                <line x1={center - r} y1={center} x2={center + r} y2={center} stroke="rgba(255,255,255,0.08)" />
+                
+                <!-- Labels -->
+                <text x={center} y="15" fill="var(--text-secondary)" font-size="9" text-anchor="middle" font-weight="700">DMG</text>
+                <text x={center + r + 14} y={center + 3} fill="var(--text-secondary)" font-size="9" text-anchor="middle" font-weight="700">UTL</text>
+                <text x={center} y="193" fill="var(--text-secondary)" font-size="9" text-anchor="middle" font-weight="700">DIFF</text>
+                <text x={center - r - 14} y={center + 3} fill="var(--text-secondary)" font-size="9" text-anchor="middle" font-weight="700">SURV</text>
+                
+                <!-- Stats Polygon -->
+                <polygon 
+                  points={polygonPoints} 
+                  fill="rgba(0, 240, 255, 0.25)" 
+                  stroke="var(--accent-cyan)" 
+                  stroke-width="2" 
+                  filter="drop-shadow(0 0 4px rgba(0, 240, 255, 0.4))"
+                />
+                
+                <!-- Glowing corner circles -->
+                <circle cx={center} cy={dmgY} r="3.5" fill="var(--accent-cyan)" />
+                <circle cx={utlX} cy={center} r="3.5" fill="var(--accent-cyan)" />
+                <circle cx={center} cy={dfcY} r="3.5" fill="var(--accent-cyan)" />
+                <circle cx={srvX} cy={center} r="3.5" fill="var(--accent-cyan)" />
+              </svg>
+            </div>
+
+            <!-- Attribute bars -->
+            <div class="attributes-list">
+              <div class="attr-item">
+                <span class="attr-lbl">{page.damage}</span>
+                <div class="bar-bg"><div class="bar-fill color-dmg" style={`width: ${(master.damage / 3) * 100}%`}></div></div>
+              </div>
+              <div class="attr-item">
+                <span class="attr-lbl">{page.utility}</span>
+                <div class="bar-bg"><div class="bar-fill color-utl" style={`width: ${(master.utility / 3) * 100}%`}></div></div>
+              </div>
+              <div class="attr-item">
+                <span class="attr-lbl">{page.difficulty}</span>
+                <div class="bar-bg"><div class="bar-fill color-diff" style={`width: ${(master.difficult / 3) * 100}%`}></div></div>
+              </div>
+              <div class="attr-item">
+                <span class="attr-lbl">{page.survive}</span>
+                <div class="bar-bg"><div class="bar-fill color-surv" style={`width: ${(master.survive / 3) * 100}%`}></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lore Card -->
+        {text.description && (
+          <div class="detail-card glass lore-card">
+            <h2 class="card-sec-title">{page.lore}</h2>
+            <p class="lore-text">{text.description}</p>
+          </div>
+        )}
+      </div>
+
+      <!-- RIGHT COLUMN: Stats values, Line Chart, Profile -->
+      <div class="detail-col-right">
+        <!-- Match Performance Card -->
+        {(activeStat || activeScore) && (
+          <div class="detail-card glass performance-card">
+            <h2 class="card-sec-title">{page.performance}</h2>
+            
+            {activeScore && (
+              <div class="score-main-display">
+                <span class="score-number">{activeScore.score}</span>
+                <span class="score-label">{page.score}</span>
+              </div>
+            )}
+
+            <div class="performance-metrics">
+              <div class="perf-metric">
+                <span class="p-val" style="color: var(--accent-cyan);">{activeStat ? parseFloat(activeStat.winRate).toFixed(1) + '%' : '-'}</span>
+                <span class="p-lbl">{page.wr}</span>
+              </div>
+              <div class="perf-metric">
+                <span class="p-val">{activeStat ? parseFloat(activeStat.pickRate).toFixed(1) + '%' : '-'}</span>
+                <span class="p-lbl">{page.pr}</span>
+              </div>
+              <div class="perf-metric">
+                <span class="p-val">{activeStat ? parseFloat(activeStat.banRate).toFixed(1) + '%' : '-'}</span>
+                <span class="p-lbl">{page.br}</span>
+              </div>
+            </div>
+
+            {activeScore && (
+              <div class="momentum-box">
+                <span class="m-lbl">{page.momentum}</span>
+                <span class={`m-val ${parseFloat(activeScore.momentumScore) > 0 ? 'positive' : 'negative'}`}>
+                  {parseFloat(activeScore.momentumScore) > 0 ? `+${parseFloat(activeScore.momentumScore).toFixed(1)} ▲` : `${parseFloat(activeScore.momentumScore).toFixed(1)} ▼`}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        <!-- Win Rate Trend chart -->
+        {trendWrHistory.length > 0 && (
+          <div class="detail-card glass trend-chart-card">
+            <h2 class="card-sec-title">{page.trendTitle}</h2>
+            <div class="detail-chart-wrapper">
+              <svg viewBox={`0 0 ${trendWidth} ${trendHeight}`} width="100%">
+                <!-- Grid Lines -->
+                {[0, 1, 2].map(i => {
+                  const val = tMinWr + (tWrDiff * i / 2);
+                  const y = getTrendY(val);
+                  return (
+                    <g opacity="0.4">
+                      <line x1={tPaddingLeft} y1={y} x2={trendWidth - tPaddingRight} y2={y} stroke="rgba(255,255,255,0.06)" stroke-dasharray="3,3" />
+                      <text x={tPaddingLeft - 6} y={y + 3} fill="var(--text-muted)" font-size="8" text-anchor="end">{val.toFixed(1)}%</text>
+                    </g>
+                  );
+                })}
+
+                <!-- Dates Labels -->
+                {trendDates.map((dateStr, i) => {
+                  if (i % 2 !== 0 && i !== trendDates.length - 1) return null;
+                  const x = getTrendX(i);
+                  return (
+                    <text x={x} y={trendHeight - 4} fill="var(--text-muted)" font-size="8" text-anchor="middle">{dateStr}</text>
+                  );
+                })}
+
+                <!-- Trend Line Path -->
+                <path d={linePathD} fill="none" stroke="var(--accent-cyan)" stroke-width="2.5" />
+                
+                {/* Dots on points */}
+                {trendWrHistory.map((rate, idx) => (
+                  <circle
+                    cx={getTrendX(idx)}
+                    cy={getTrendY(rate)}
+                    r="3.5"
+                    fill="var(--accent-cyan)"
+                    stroke="var(--bg-deep)"
+                    stroke-width="1"
+                  />
+                ))}
+              </svg>
+            </div>
+          </div>
+        )}
+
+        <!-- Profile Detail Card -->
+        <div class="detail-card glass profile-card">
+          <h2 class="card-sec-title">{page.profile}</h2>
+          
+          <div class="profile-details-grid">
+            <div class="prof-row">
+              <span class="prof-lbl">{page.roles}</span>
+              <span class="prof-val">{master.roles.map(r => r.toUpperCase()).join(', ')}</span>
+            </div>
+            <div class="prof-row">
+              <span class="prof-lbl">{page.recommendedLanes}</span>
+              <span class="prof-val">{master.lanes.map(getLaneLabel).join(', ')}</span>
+            </div>
+            <div class="prof-row">
+              <span class="prof-lbl">{page.type}</span>
+              <span class="prof-val" style="color: var(--accent-gold);">{master.championType}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .champ-detail-page {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: var(--transition-fast);
+    width: fit-content;
+  }
+
+  .back-link:hover {
+    color: var(--accent-gold);
+    transform: translateX(-2px);
+  }
+
+  /* Hero Splash Banner */
+  .detail-hero-banner {
+    border-radius: 16px;
+    height: 180px;
+    background-size: cover;
+    background-position: center 20%;
+    border: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: flex-end;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-card);
+  }
+
+  @media (min-width: 768px) {
+    .detail-hero-banner {
+      height: 280px;
+      padding: 32px;
+    }
+  }
+
+  .hero-banner-content {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: flex-end;
+    position: relative;
+    z-index: 10;
+  }
+
+  .hero-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .detail-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 2px solid var(--accent-gold);
+    object-fit: cover;
+    box-shadow: 0 0 15px rgba(200, 155, 60, 0.4);
+  }
+
+  @media (min-width: 768px) {
+    .detail-avatar {
+      width: 90px;
+      height: 90px;
+      border-width: 3px;
+    }
+  }
+
+  .detail-title-group {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .detail-name {
+    font-family: var(--font-heading);
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1.1;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+  }
+
+  @media (min-width: 768px) {
+    .detail-name {
+      font-size: 2.8rem;
+    }
+  }
+
+  .detail-subtitle {
+    color: var(--text-gold);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+  }
+
+  @media (min-width: 768px) {
+    .detail-subtitle {
+      font-size: 1rem;
+    }
+  }
+
+  .tier-badge.large {
+    font-size: 1.25rem;
+    padding: 6px 16px;
+    border-radius: 8px;
+    min-width: 50px;
+  }
+
+  /* Columns Grid Layout */
+  .detail-content-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  @media (min-width: 768px) {
+    .detail-content-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .detail-card {
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+  }
+
+  .card-sec-title {
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    padding-bottom: 8px;
+  }
+
+  /* Radar & attribute list side-by-side */
+  .radar-and-bars {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  @media (min-width: 480px) {
+    .radar-and-bars {
+      flex-direction: row;
+      justify-content: space-around;
+      width: 100%;
+    }
+  }
+
+  .radar-chart-wrapper {
+    background: rgba(0,0,0,0.15);
+    border-radius: 50%;
+    padding: 10px;
+    border: 1px solid rgba(255,255,255,0.02);
+  }
+
+  .attributes-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 200px;
+  }
+
+  .attr-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .attr-lbl {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .bar-bg {
+    height: 8px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+  }
+
+  .color-dmg { background: linear-gradient(90deg, #ff4655, #ff7685); }
+  .color-utl { background: linear-gradient(90deg, #b355ff, #d399ff); }
+  .color-diff { background: linear-gradient(90deg, #ff9c00, #ffc055); }
+  .color-surv { background: linear-gradient(90deg, #00bcff, #75d5ff); }
+
+  /* Lore details */
+  .lore-text {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+
+  /* Score main display */
+  .score-main-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 20px;
+    background: linear-gradient(135deg, rgba(200, 155, 60, 0.12) 0%, rgba(200, 155, 60, 0.03) 100%);
+    border: 1px solid rgba(200, 155, 60, 0.25);
+    border-radius: 12px;
+  }
+
+  .score-number {
+    font-family: var(--font-heading);
+    font-size: 2.8rem;
+    font-weight: 900;
+    color: var(--accent-gold);
+    text-shadow: 0 0 20px rgba(200, 155, 60, 0.4);
+    line-height: 1;
+  }
+
+  .score-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+    margin-top: 6px;
+  }
+
+  /* Performance statistics values */
+  .performance-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .perf-metric {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 6px;
+    background: rgba(0,0,0,0.15);
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.02);
+  }
+
+  .perf-metric .p-val {
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    font-weight: 800;
+  }
+
+  .perf-metric .p-lbl {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-top: 4px;
+    text-transform: uppercase;
+  }
+
+  .momentum-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 240, 255, 0.05);
+    border: 1px solid rgba(0, 240, 255, 0.1);
+    padding: 8px 16px;
+    border-radius: 8px;
+  }
+
+  .momentum-box .m-lbl {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .momentum-box .m-val {
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  .momentum-box .m-val.positive { color: #10b981; }
+  .momentum-box .m-val.negative { color: #f43f5e; }
+
+  /* Trend Chart */
+  .detail-chart-wrapper {
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    padding: 8px;
+  }
+
+  /* Profile grid */
+  .profile-details-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .prof-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+
+  .prof-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .prof-lbl {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  .prof-val {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+</style>

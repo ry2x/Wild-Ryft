@@ -1,0 +1,71 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getTierList, getChampionTrends } from '../lib/db';
+import { getI18n, getLaneLabels } from '../lib/i18n';
+import AnalyticsDashboard from '../components/AnalyticsDashboard';
+
+
+const { locale, t } = await getI18n(Astro.cookies.get('locale')?.value);
+
+// 1. Get top 8 meta champions to display as comparison choices
+const tierList = await getTierList(locale, 'all', 'all');
+const top8 = tierList.slice(0, 8);
+
+// 2. Fetch history trends for each of them
+const trendsData = await Promise.all(
+  top8.map(async (champ) => {
+    const rawTrends = await getChampionTrends(champ.championId, 'all', champ.lane);
+    
+    // Sort trends chronologically and limit to last 10 points
+    const sortedTrends = rawTrends
+      .sort((a, b) => a.statsAt.getTime() - b.statsAt.getTime())
+      .slice(-10);
+
+    return {
+      championId: champ.championId,
+      name: champ.name,
+      lane: champ.lane,
+      winRateHistory: sortedTrends.map(t => t.winRate),
+      dates: sortedTrends.map(t => t.statsAt.toISOString().split('T')[0]),
+      currentWinRate: champ.winRate,
+      currentPickRate: champ.pickRate,
+      currentBanRate: champ.banRate,
+      tier: champ.tier
+    };
+  })
+);
+
+const page = {
+  title: t('pages.analytics.title'),
+  header: t('pages.analytics.header'),
+  desc: t('pages.analytics.desc')
+};
+const messages = {
+  chartTitle: t('components.analyticsDashboard.chartTitle'),
+  compTitle: t('components.analyticsDashboard.compTitle'),
+  selectLabel: t('components.analyticsDashboard.selectLabel'),
+  tableChamp: t('components.analyticsDashboard.tableChamp'),
+  tableLane: t('components.analyticsDashboard.tableLane'),
+  tableTier: t('components.analyticsDashboard.tableTier'),
+  tableWr: t('components.analyticsDashboard.tableWr'),
+  tablePr: t('components.analyticsDashboard.tablePr'),
+  tableBr: t('components.analyticsDashboard.tableBr'),
+  lanes: getLaneLabels(t)
+};
+---
+
+<Layout title={page.title}>
+  <div class="animated-fade-in">
+    <div style="margin-bottom: 24px;">
+      <h1 style="font-family: var(--font-heading); font-size: 1.8rem; font-weight: 800; margin-bottom: 4px;">
+        {page.header}
+      </h1>
+      <p style="color: var(--text-secondary); font-size: 0.95rem;">
+        {page.desc}
+      </p>
+    </div>
+
+    <!-- Interactive dashboard component -->
+    <AnalyticsDashboard championsTrends={trendsData} messages={messages} client:load />
+  </div>
+</Layout>

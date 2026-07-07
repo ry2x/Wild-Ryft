@@ -1,10 +1,549 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { getTierList, getLatestSnapshotDate } from '../lib/db';
+import type { Lane } from '@wild-ryft/shared';
+import { getI18n, getLaneLabels, getLanguageTag } from '../lib/i18n';
+
+const { locale, t } = await getI18n(Astro.cookies.get('locale')?.value);
+
+// Load tier list data for 'all' rank and 'all' lanes to construct dashboard
+const tierList = await getTierList(locale, 'all', 'all');
+const latestDate = await getLatestSnapshotDate('all');
+
+// Helper to get lane icon or abbreviation
+const laneLabels = getLaneLabels(t);
+const getLaneLabel = (lane: Lane) => {
+  return laneLabels[lane] || lane.toUpperCase();
+};
+
+// Helper: format rate value
+const fmtRate = (val: string) => {
+  if (!val || val === '-') return '-';
+  return parseFloat(val).toFixed(1) + '%';
+};
+
+// Calculate dashboard metrics
+const totalChampions = new Set(tierList.map(c => c.championId)).size;
+const opCount = tierList.filter(c => c.tier === 'OP').length;
+const ratesWithValues = tierList.filter(c => c.winRate !== '-');
+const avgWinRate = ratesWithValues.length > 0
+  ? (ratesWithValues.reduce((acc, c) => acc + parseFloat(c.winRate), 0) / ratesWithValues.length).toFixed(1)
+  : '-';
+
+// Filter Top Meta (Top 4 overall scores)
+// Group by champion to avoid duplicates of same champion in different lanes if we want, or just show top 4 roles
+const topMeta = tierList.slice(0, 4);
+
+// Filter Biggest Winners (Highest momentumScore)
+const winners = [...tierList]
+  .filter(c => parseFloat(c.momentumScore) > 0)
+  .sort((a, b) => parseFloat(b.momentumScore) - parseFloat(a.momentumScore))
+  .slice(0, 4);
+
+// Filter Biggest Losers (Lowest momentumScore)
+const losers = [...tierList]
+  .filter(c => parseFloat(c.momentumScore) < 0)
+  .sort((a, b) => parseFloat(a.momentumScore) - parseFloat(b.momentumScore))
+  .slice(0, 4);
+
+const page = {
+  title: t('pages.home.title'),
+  subtitle: t('pages.home.subtitle'),
+  totalChamps: t('pages.home.totalChamps'),
+  opTierCount: t('pages.home.opTierCount'),
+  avgWr: t('pages.home.avgWr'),
+  lastUpdate: t('pages.home.lastUpdate'),
+  topMetaTitle: t('pages.home.topMetaTitle'),
+  winnersTitle: t('pages.home.winnersTitle'),
+  losersTitle: t('pages.home.losersTitle'),
+  empty: t('pages.home.empty'),
+  score: t('common.metrics.score'),
+  winRate: t('common.metrics.winRate'),
+  winRateShort: t('common.metrics.winRateShort'),
+  championFallbackTitle: t('common.misc.wildRiftChampion')
+};
+
+// Fallback image generator
+const getFallbackIcon = (name: string) => {
+  const initials = name.slice(0, 2).toUpperCase();
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="#101a30"/><text x="40" y="46" font-family="Outfit, sans-serif" font-size="28" font-weight="bold" fill="#c89b3c" text-anchor="middle">textPlaceholder</text></svg>`.replace('textPlaceholder', initials);
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+};
 ---
 
-<Layout title="Wild Ryft Stats">
-  <main>
-    <h1>Wild Ryft Stats</h1>
-    <p>Champion tier list and statistics for Wild Rift.</p>
-  </main>
+<Layout title={page.title}>
+  <div class="animated-fade-in">
+    <!-- Hero Banner / Meta Intro -->
+    <section class="hero-section">
+      <div class="hero-content">
+        <h1>WILD RIFT STATS</h1>
+        <p class="subtitle">{page.subtitle}</p>
+        {latestDate && (
+          <div class="last-update">
+            {page.lastUpdate}: {latestDate.toLocaleDateString(getLanguageTag(locale), { year: 'numeric', month: 'long', day: 'numeric' })}
+          </div>
+        )}
+      </div>
+    </section>
+
+    {tierList.length === 0 ? (
+      <div class="empty-state glass">
+        <p>{page.empty}</p>
+      </div>
+    ) : (
+      <!-- Dashboard Stats -->
+      <section class="dashboard-grid">
+        <div class="stat-card glass">
+          <div class="stat-value">{totalChampions}</div>
+          <div class="stat-label">{page.totalChamps}</div>
+        </div>
+        <div class="stat-card glass highlight-op">
+          <div class="stat-value">{opCount}</div>
+          <div class="stat-label">{page.opTierCount}</div>
+        </div>
+        <div class="stat-card glass highlight-wr">
+          <div class="stat-value">{avgWinRate}%</div>
+          <div class="stat-label">{page.avgWr}</div>
+        </div>
+      </section>
+
+      <!-- Top Meta Champions -->
+      <section class="section-container">
+        <h2 class="section-title">{page.topMetaTitle}</h2>
+        <div class="meta-champions-grid">
+          {topMeta.map((champ) => (
+            <a href={`/champion/${champ.championId}`} class="meta-card glass" style="text-decoration: none; color: inherit;">
+              <div class="champ-banner-overlay"></div>
+              <div class="meta-card-header">
+                <span class={`tier-badge ${champ.tier.toLowerCase()}`}>{champ.tier}</span>
+                <span class="lane-label">{getLaneLabel(champ.lane)}</span>
+              </div>
+              <div class="champ-main-info">
+                <img 
+                  src={`https://ddragon.leagueoflegends.com/cdn/14.10.1/img/champion/${champ.championId}.png`}
+                  alt={champ.name}
+                  class="champ-avatar"
+                  onerror={`this.onerror=null; this.src='${getFallbackIcon(champ.name)}';`}
+                />
+                <div class="champ-text">
+                  <h3 class="champ-name">{champ.name}</h3>
+                  <span class="champ-title">{champ.title || page.championFallbackTitle}</span>
+                </div>
+              </div>
+              <div class="champ-metrics">
+                <div class="metric">
+                  <span class="m-val score-gold">{champ.score}</span>
+                  <span class="m-lbl">{page.score}</span>
+                </div>
+                <div class="metric">
+                  <span class="m-val">{fmtRate(champ.winRate)}</span>
+                  <span class="m-lbl">{page.winRate}</span>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      <!-- Winners and Losers Section -->
+      <section class="split-section">
+        <!-- Winners -->
+        <div class="winners-container">
+          <h2 class="section-title text-green">{page.winnersTitle}</h2>
+          <div class="momentum-list glass">
+            {winners.map((champ) => (
+              <a href={`/champion/${champ.championId}`} class="momentum-item" style="text-decoration: none; color: inherit;">
+                <div class="momentum-champ-info">
+                  <img 
+                    src={`https://ddragon.leagueoflegends.com/cdn/14.10.1/img/champion/${champ.championId}.png`} 
+                    alt={champ.name} 
+                    class="momentum-avatar"
+                    onerror={`this.onerror=null; this.src='${getFallbackIcon(champ.name)}';`}
+                  />
+                  <div>
+                    <div class="momentum-name">{champ.name}</div>
+                    <div class="momentum-lane">{getLaneLabel(champ.lane)}</div>
+                  </div>
+                </div>
+                <div class="momentum-stats">
+                  <div class="momentum-wr">{fmtRate(champ.winRate)} {page.winRateShort}</div>
+                  <div class="momentum-value positive">+{parseFloat(champ.momentumScore).toFixed(1)} ▲</div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+
+        <!-- Losers -->
+        <div class="losers-container">
+          <h2 class="section-title text-red">{page.losersTitle}</h2>
+          <div class="momentum-list glass">
+            {losers.map((champ) => (
+              <a href={`/champion/${champ.championId}`} class="momentum-item" style="text-decoration: none; color: inherit;">
+                <div class="momentum-champ-info">
+                  <img 
+                    src={`https://ddragon.leagueoflegends.com/cdn/14.10.1/img/champion/${champ.championId}.png`} 
+                    alt={champ.name} 
+                    class="momentum-avatar"
+                    onerror={`this.onerror=null; this.src='${getFallbackIcon(champ.name)}';`}
+                  />
+                  <div>
+                    <div class="momentum-name">{champ.name}</div>
+                    <div class="momentum-lane">{getLaneLabel(champ.lane)}</div>
+                  </div>
+                </div>
+                <div class="momentum-stats">
+                  <div class="momentum-wr">{fmtRate(champ.winRate)} {page.winRateShort}</div>
+                  <div class="momentum-value negative">{parseFloat(champ.momentumScore).toFixed(1)} ▼</div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+    )}
+  </div>
 </Layout>
+
+<style>
+  /* Page-specific Styles */
+  .hero-section {
+    background: radial-gradient(135deg, rgba(10, 20, 40, 0.8) 0%, rgba(5, 8, 17, 0.95) 100%),
+                url('https://ddragon.leagueoflegends.com/cdn/img/champion/splash/Ahri_7.jpg') no-repeat center top;
+    background-size: cover;
+    border-radius: 16px;
+    padding: 32px 24px;
+    border: 1px solid var(--border-subtle);
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-card);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-section::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: linear-gradient(0deg, var(--bg-deep) 0%, rgba(0,0,0,0) 100%);
+    pointer-events: none;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 10;
+  }
+
+  .hero-section h1 {
+    font-family: var(--font-heading);
+    font-size: 2.2rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+  }
+
+  .hero-section .subtitle {
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+    max-width: 480px;
+    margin-bottom: 16px;
+    text-shadow: 0 0 8px rgba(0,0,0,0.8);
+  }
+
+  .last-update {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(0, 240, 255, 0.1);
+    border: 1px solid var(--border-focus);
+    color: var(--accent-cyan);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  /* Dashboard Stats Grid */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .stat-card {
+    padding: 16px;
+    border-radius: 12px;
+    text-align: center;
+    transition: var(--transition-fast);
+  }
+
+  .stat-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(200, 155, 60, 0.3);
+  }
+
+  .stat-card.highlight-op {
+    border-color: rgba(255, 70, 85, 0.25);
+    background: linear-gradient(180deg, rgba(255, 70, 85, 0.05) 0%, rgba(16, 26, 48, 0.65) 100%);
+  }
+  .stat-card.highlight-op:hover {
+    border-color: var(--tier-op);
+  }
+
+  .stat-card.highlight-wr {
+    border-color: rgba(0, 240, 255, 0.2);
+    background: linear-gradient(180deg, rgba(0, 240, 255, 0.05) 0%, rgba(16, 26, 48, 0.65) 100%);
+  }
+  .stat-card.highlight-wr:hover {
+    border-color: var(--accent-cyan);
+  }
+
+  .stat-value {
+    font-family: var(--font-heading);
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--text-primary);
+  }
+
+  .highlight-op .stat-value {
+    color: var(--tier-op);
+    text-shadow: 0 0 10px rgba(255, 70, 85, 0.3);
+  }
+
+  .highlight-wr .stat-value {
+    color: var(--accent-cyan);
+    text-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-top: 4px;
+    text-transform: uppercase;
+  }
+
+  /* Section Styles */
+  .section-container {
+    margin-bottom: 32px;
+  }
+
+  .section-title {
+    font-family: var(--font-heading);
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-title.text-green { color: #10b981; }
+  .section-title.text-red { color: #f43f5e; }
+
+  /* Top Meta grid */
+  .meta-champions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
+
+  .meta-card {
+    border-radius: 12px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    transition: var(--transition-normal);
+    cursor: pointer;
+  }
+
+  .meta-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    border-color: var(--accent-gold);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), var(--shadow-glow-gold);
+  }
+
+  .meta-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    position: relative;
+    z-index: 10;
+  }
+
+  .lane-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 3px 8px;
+    border-radius: 4px;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .champ-main-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    position: relative;
+    z-index: 10;
+  }
+
+  .champ-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid var(--accent-gold);
+    object-fit: cover;
+    box-shadow: 0 0 10px rgba(200, 155, 60, 0.3);
+  }
+
+  .champ-name {
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .champ-title {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    display: block;
+  }
+
+  .champ-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 12px;
+    position: relative;
+    z-index: 10;
+  }
+
+  .metric {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .m-val {
+    font-family: var(--font-heading);
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+
+  .m-lbl {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-top: 2px;
+  }
+
+  .score-gold {
+    color: var(--accent-gold);
+    text-shadow: 0 0 6px rgba(200, 155, 60, 0.3);
+  }
+
+  /* Winners/Losers side by side */
+  .split-section {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  @media (min-width: 768px) {
+    .split-section {
+      grid-template-columns: 1fr 1fr;
+    }
+    
+    .hero-section {
+      padding: 48px;
+    }
+    
+    .hero-section h1 {
+      font-size: 3rem;
+    }
+  }
+
+  .momentum-list {
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .momentum-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    transition: var(--transition-fast);
+  }
+
+  .momentum-item:last-child {
+    border-bottom: none;
+  }
+
+  .momentum-item:hover {
+    background-color: var(--bg-surface-hover);
+  }
+
+  .momentum-champ-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .momentum-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border-subtle);
+    object-fit: cover;
+  }
+
+  .momentum-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .momentum-lane {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  .momentum-stats {
+    text-align: right;
+  }
+
+  .momentum-wr {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+  }
+
+  .momentum-value {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-top: 2px;
+  }
+
+  .momentum-value.positive { color: #10b981; }
+  .momentum-value.negative { color: #f43f5e; }
+
+  .empty-state {
+    padding: 40px;
+    border-radius: 12px;
+    text-align: center;
+    color: var(--text-secondary);
+  }
+</style>

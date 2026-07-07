@@ -1,0 +1,498 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getTierList } from '../lib/db';
+import type { Rank, Lane } from '@wild-ryft/shared';
+import { getI18n, getLaneLabels, getRankLabels } from '../lib/i18n';
+
+// Parse query params
+const rank = (Astro.url.searchParams.get('rank') as Rank) || 'all';
+const lane = (Astro.url.searchParams.get('lane') as Lane | 'all') || 'all';
+const { locale, t } = await getI18n(Astro.cookies.get('locale')?.value);
+
+// Fetch data
+const tierList = await getTierList(locale, rank, lane);
+
+// Configuration maps
+const rankLabels = getRankLabels(t);
+const laneLabels = getLaneLabels(t);
+const RANK_OPTIONS = [
+  { value: 'all', label: rankLabels.all },
+  { value: 'diamond', label: rankLabels.diamond },
+  { value: 'master_plus', label: rankLabels.master_plus },
+  { value: 'challenger', label: rankLabels.challenger },
+  { value: 'super_server', label: rankLabels.super_server }
+];
+
+const LANE_OPTIONS = [
+  { value: 'all', label: t('common.lanes.all') },
+  { value: 'top', label: laneLabels.top },
+  { value: 'jungle', label: laneLabels.jungle },
+  { value: 'mid', label: laneLabels.mid },
+  { value: 'bot', label: laneLabels.bot },
+  { value: 'support', label: laneLabels.support }
+];
+
+const getLaneLabel = (l: Lane) => {
+  return laneLabels[l] || l.toUpperCase();
+};
+
+const page = {
+  title: t('pages.tiers.title'),
+  header: t('pages.tiers.header'),
+  desc: t('pages.tiers.desc'),
+  tableChamp: t('pages.tiers.tableChamp'),
+  tableTier: t('pages.tiers.tableTier'),
+  tableScore: t('pages.tiers.tableScore'),
+  tableWr: t('pages.tiers.tableWr'),
+  tablePr: t('pages.tiers.tablePr'),
+  tableBr: t('pages.tiers.tableBr'),
+  tableMmt: t('pages.tiers.tableMmt'),
+  empty: t('pages.tiers.empty'),
+  favorite: t('common.misc.favorite')
+};
+
+const getFallbackIcon = (name: string) => {
+  const initials = name.slice(0, 2).toUpperCase();
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="#101a30"/><text x="40" y="46" font-family="Outfit, sans-serif" font-size="28" font-weight="bold" fill="#c89b3c" text-anchor="middle">textPlaceholder</text></svg>`.replace('textPlaceholder', initials);
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+};
+---
+
+<Layout title={page.title}>
+  <div class="animated-fade-in">
+    <!-- Header info -->
+    <div class="tiers-header">
+      <div>
+        <h1 style="font-family: var(--font-heading); font-size: 1.8rem; font-weight: 800; margin-bottom: 4px;">
+          {page.header}
+        </h1>
+        <p style="color: var(--text-secondary); font-size: 0.95rem;">
+          {page.desc}
+        </p>
+      </div>
+
+      <!-- Rank Dropdown -->
+      <div class="select-wrapper">
+        <select id="rank-select" class="custom-select">
+          {RANK_OPTIONS.map(opt => (
+            <option value={opt.value} selected={rank === opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+
+    <!-- Lane Selector Scroll -->
+    <div class="lane-tabs glass">
+      {LANE_OPTIONS.map(opt => (
+        <a 
+          href={`/tiers?rank=${rank}&lane=${opt.value}`} 
+          class={`lane-tab-item ${lane === opt.value ? 'active' : ''}`}
+        >
+          <span class={`lane-tab-icon icon-${opt.value}`}></span>
+          <span>{opt.label}</span>
+        </a>
+      ))}
+    </div>
+
+    <!-- Tier List Table/List -->
+    {tierList.length === 0 ? (
+      <div class="empty-tiers glass">
+        <p>{page.empty}</p>
+      </div>
+    ) : (
+      <div class="tier-list-container">
+        <!-- List Header (for desktop screen align) -->
+        <div class="tier-list-header glass">
+          <div class="th-rank">#</div>
+          <div class="th-champ">{page.tableChamp}</div>
+          <div class="th-tier">{page.tableTier}</div>
+          <div class="th-score">{page.tableScore}</div>
+          <div class="th-stat">{page.tableWr}</div>
+          <div class="th-stat">{page.tablePr}</div>
+          <div class="th-stat">{page.tableBr}</div>
+          <div class="th-momentum">{page.tableMmt}</div>
+        </div>
+
+        <!-- List Items -->
+        <div class="tier-list-body">
+          {tierList.map((champ, index) => {
+            const mVal = parseFloat(champ.momentumScore);
+            return (
+              <a 
+                href={`/champion/${champ.championId}?rank=${rank}&lane=${champ.lane}`} 
+                class="tier-row glass"
+                style="text-decoration: none; color: inherit;"
+              >
+                <!-- Rank # -->
+                <div class="td-rank">
+                  <span class="rank-num">{index + 1}</span>
+                </div>
+
+                <!-- Champion Avatar + Name -->
+                <div class="td-champ">
+                  <div class="fav-star-holder" data-id={champ.championId}>
+                    <!-- Hydrated Star SVG via Client Script -->
+                    <button class="row-fav-btn" type="button" aria-label={page.favorite}>
+                      <svg class="star-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                      </svg>
+                    </button>
+                  </div>
+                  <img 
+                    src={`https://ddragon.leagueoflegends.com/cdn/14.10.1/img/champion/${champ.championId}.png`} 
+                    alt={champ.name} 
+                    class="row-avatar"
+                    onerror={`this.onerror=null; this.src='${getFallbackIcon(champ.name)}';`}
+                  />
+                  <div>
+                    <div class="row-name">{champ.name}</div>
+                    <div class="row-lane">{getLaneLabel(champ.lane)}</div>
+                  </div>
+                </div>
+
+                <!-- Tier badge -->
+                <div class="td-tier">
+                  <span class={`tier-badge ${champ.tier.toLowerCase()}`}>{champ.tier}</span>
+                </div>
+
+                <!-- Score (primary) -->
+                <div class="td-score">
+                  <span class="score-val">{champ.score}</span>
+                </div>
+
+                <!-- Stats values -->
+                <div class="td-stat">
+                  <span class="stat-highlight-wr">{champ.winRate !== '-' ? parseFloat(champ.winRate).toFixed(1) + '%' : '-'}</span>
+                </div>
+                <div class="td-stat">
+                  <span>{champ.pickRate !== '-' ? parseFloat(champ.pickRate).toFixed(1) + '%' : '-'}</span>
+                </div>
+                <div class="td-stat">
+                  <span>{champ.banRate !== '-' ? parseFloat(champ.banRate).toFixed(1) + '%' : '-'}</span>
+                </div>
+
+                <!-- Momentum -->
+                <div class="td-momentum">
+                  {mVal > 0 ? (
+                    <span class="momentum-span positive">+{mVal.toFixed(1)} ▲</span>
+                  ) : mVal < 0 ? (
+                    <span class="momentum-span negative">{mVal.toFixed(1)} ▼</span>
+                  ) : (
+                    <span class="momentum-span neutral">0.0 ▬</span>
+                  )}
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      </div>
+    )}
+  </div>
+</Layout>
+
+<script>
+  // Rank Select redirection handler
+  const select = document.getElementById('rank-select') as HTMLSelectElement;
+  if (select) {
+    select.addEventListener('change', (e) => {
+      const target = e.target as HTMLSelectElement;
+      const url = new URL(window.location.href);
+      url.searchParams.set('rank', target.value);
+      window.location.href = url.toString();
+    });
+  }
+
+  // Client Favorites list toggle inside row handler
+  const registerFavButtons = () => {
+    let favorites: string[] = [];
+    try {
+      favorites = JSON.parse(localStorage.getItem('wr_fav_champions') || '[]');
+    } catch(e) {}
+
+    // Style current stars
+    const holders = document.querySelectorAll('.fav-star-holder');
+    holders.forEach(holder => {
+      const champId = holder.getAttribute('data-id');
+      if (!champId) return;
+
+      const btn = holder.querySelector('.row-fav-btn');
+      const svg = holder.querySelector('.star-icon');
+      
+      const updateStarStyle = (active: boolean) => {
+        if (active) {
+          svg?.setAttribute('fill', 'var(--accent-gold)');
+          svg?.setAttribute('stroke', 'var(--accent-gold)');
+          btn?.classList.add('active');
+        } else {
+          svg?.setAttribute('fill', 'none');
+          svg?.setAttribute('stroke', 'currentColor');
+          btn?.classList.remove('active');
+        }
+      };
+
+      updateStarStyle(favorites.includes(champId));
+
+      btn?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        let favs: string[] = [];
+        try {
+          favs = JSON.parse(localStorage.getItem('wr_fav_champions') || '[]');
+        } catch(e) {}
+
+        const isFav = favs.includes(champId);
+        let updated;
+        if (isFav) {
+          updated = favs.filter(id => id !== champId);
+          updateStarStyle(false);
+        } else {
+          updated = [...favs, champId];
+          updateStarStyle(true);
+        }
+        localStorage.setItem('wr_fav_champions', JSON.stringify(updated));
+      });
+    });
+  };
+
+  // Run on load and after View Transitions page swap
+  registerFavButtons();
+  document.addEventListener('astro:page-load', registerFavButtons);
+</script>
+
+<style>
+  .tiers-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 16px;
+  }
+
+  /* Lane navigation tabs */
+  .lane-tabs {
+    display: flex;
+    overflow-x: auto;
+    border-radius: 12px;
+    padding: 6px;
+    margin-bottom: 20px;
+    gap: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .lane-tabs::-webkit-scrollbar {
+    height: 3px;
+  }
+
+  .lane-tab-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: var(--transition-fast);
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  .lane-tab-item:hover {
+    color: var(--text-primary);
+    background-color: rgba(255,255,255,0.03);
+  }
+
+  .lane-tab-item.active {
+    background-color: var(--bg-active);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(0, 240, 255, 0.2);
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.1);
+  }
+
+  /* Table structure */
+  .tier-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .tier-list-header {
+    display: none;
+    grid-template-columns: 50px 2fr 80px 70px 1fr 1fr 1fr 1.2fr;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    align-items: center;
+  }
+
+  .tier-list-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .tier-row {
+    display: grid;
+    grid-template-columns: 40px 2.5fr 70px 60px 1fr 0px 0px 1.2fr;
+    padding: 12px;
+    border-radius: 12px;
+    align-items: center;
+    transition: var(--transition-normal);
+    cursor: pointer;
+  }
+
+  /* Hide PR and BR on mobile */
+  .tier-row .td-stat:nth-child(6),
+  .tier-row .td-stat:nth-child(7) {
+    display: none;
+  }
+
+  .tier-row:hover {
+    transform: translateX(4px);
+    border-color: var(--accent-cyan);
+    box-shadow: var(--shadow-glow-cyan);
+    background-color: var(--bg-surface-hover);
+  }
+
+  .td-rank {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+  }
+
+  .td-champ {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .fav-star-holder {
+    display: flex;
+    align-items: center;
+  }
+
+  .row-fav-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    transition: var(--transition-fast);
+  }
+
+  .row-fav-btn:hover {
+    color: var(--accent-gold);
+    transform: scale(1.15);
+  }
+
+  .row-fav-btn.active {
+    color: var(--accent-gold);
+  }
+
+  .row-fav-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .row-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border-subtle);
+    object-fit: cover;
+  }
+
+  .row-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+  }
+
+  .row-lane {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  .td-tier {
+    display: flex;
+    justify-content: flex-start;
+  }
+
+  .td-stat {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .stat-highlight-wr {
+    color: var(--accent-cyan);
+    font-weight: 700;
+  }
+
+  .td-score {
+    font-family: var(--font-heading);
+    font-weight: 800;
+    font-size: 1rem;
+  }
+
+  .score-val {
+    color: var(--accent-gold);
+    text-shadow: 0 0 6px rgba(200, 155, 60, 0.3);
+  }
+
+  .momentum-span {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+
+  .momentum-span.positive { color: #10b981; }
+  .momentum-span.negative { color: #f43f5e; }
+  .momentum-span.neutral { color: var(--text-muted); }
+
+  /* Desktop styling adjustments */
+  @media (min-width: 768px) {
+    .tier-list-header {
+      display: grid;
+    }
+
+    .tier-row {
+      grid-template-columns: 50px 2fr 80px 70px 1fr 1fr 1fr 1.2fr;
+      padding: 14px 16px;
+    }
+
+    .tier-row .td-stat:nth-child(6),
+    .tier-row .td-stat:nth-child(7) {
+      display: block;
+    }
+
+    .row-avatar {
+      width: 40px;
+      height: 40px;
+    }
+
+    .row-name {
+      font-size: 1.05rem;
+    }
+  }
+
+  .empty-tiers {
+    padding: 60px;
+    text-align: center;
+    color: var(--text-secondary);
+    border-radius: 12px;
+  }
+</style>

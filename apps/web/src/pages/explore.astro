@@ -1,0 +1,45 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getChampions } from '../lib/db';
+import { getI18n, getLaneLabels, getRoleLabels } from '../lib/i18n';
+import ExploreChampions from '../components/ExploreChampions';
+
+const { locale, t } = await getI18n(Astro.cookies.get('locale')?.value);
+
+// Load champions list
+const champions = await getChampions(locale);
+const laneLabels = getLaneLabels(t);
+const roleLabels = getRoleLabels(t);
+const page = {
+  title: t('pages.explore.title'),
+  header: t('pages.explore.header'),
+  desc: t('pages.explore.desc')
+};
+const messages = {
+  searchPlaceholder: t('components.exploreChampions.searchPlaceholder'),
+  laneLabel: t('components.exploreChampions.laneLabel'),
+  roleLabel: t('components.exploreChampions.roleLabel'),
+  favLabel: t('common.misc.favorite'),
+  onlyFav: t('components.exploreChampions.onlyFav'),
+  all: t('common.all'),
+  noResults: t('components.exploreChampions.noResults'),
+  lanes: laneLabels,
+  roles: roleLabels
+};
+---
+
+<Layout title={page.title}>
+  <div class="animated-fade-in">
+    <div style="margin-bottom: 24px;">
+      <h1 style="font-family: var(--font-heading); font-size: 1.8rem; font-weight: 800; margin-bottom: 4px;">
+        {page.header}
+      </h1>
+      <p style="color: var(--text-secondary); font-size: 0.95rem;">
+        {page.desc}
+      </p>
+    </div>
+
+    <!-- Render React component with hydration -->
+    <ExploreChampions initialChampions={champions} messages={messages} client:load />
+  </div>
+</Layout>
